@@ -149,15 +149,6 @@ void handleScan(){
 }
 
 void handleChangeAP(){
-//  File f = SPIFFS.open("AP.json", "r");
-//  char APjson[200];  
-//  f.readBytesUntil(0 , APjson, 200);
-//
-//  StaticJsonBuffer<200> jsonBuffer;
-//  JsonObject& object = jsonBuffer.parseObject(APjson);
-//
-//  object.prettyPrintTo(Serial);
-  
   Serial.println("User is trying to change AP");
   if(server.hasArg("ssid") && server.hasArg("password")){
     Serial.println("SSID: " + server.arg("ssid"));
@@ -176,10 +167,66 @@ void handleChangeAP(){
   Serial.println("Finished Checking for Wifi Connection");
   if(main_wifi.is_connected()){
     Serial.println("Connected to WiFi");
+    // save_connected_network(WiFi.BSSID(), WiFi.SSID(), server.arg("password"));
+
+  
+//
+//  object.prettyPrintTo(Serial);
+
+    
   }
   else{
     Serial.println("Failed to Connect");
   }
+}
+
+bool save_connected_network(String password){
+  // TODO: make configue file for magic numbers
+  // 417 Because of max ssid and password calculation (will document)
+  char APjson[417];
+  char* bssid = (char*)WiFi.BSSID();
+  
+  // write existing data to a buffer
+  if(SPIFFS.exists("/AP.json")){
+    File a = SPIFFS.open("/AP.json","r");
+    a.readBytesUntil(0,APjson,417);
+    a.close();
+  }
+  // if ssid/pw storage doesn't exist, make an empty json
+  else{
+    APjson[0] = '{';
+    APjson[1] = '}';
+  }
+
+  DynamicJsonBuffer bssid_obj_buf;
+  DynamicJsonBuffer bssid_info_buf;
+
+  JsonObject& bssid_obj = bssid_obj_buf.parseObject(APjson);
+  
+  // if the BSSID already exists we will update it by removing it and then readding it (keeping the stack style of BSSID storage)
+  if(bssid_obj[bssid] != NULL){
+    bssid_obj.remove(bssid);
+  }
+  JsonObject& bssid_info = bssid_obj.createNestedObject(bssid);
+  bssid_info["ssid"] = WiFi.SSID();
+  bssid_info["pw"] = password;
+
+  // remove the tmp file check
+  if(!SPIFFS.exists("/APtmp.json")){
+    SPIFFS.remove("/APtmp.json");
+  }
+  
+  File b = SPIFFS.open("/APtmp.json","w+");
+  // write to file
+  bssid_obj.printTo(b);
+  b.close();
+
+  SPIFFS.remove("/AP.json");
+  SPIFFS.rename("/APtmp.json", "/AP.json");
+
+  
+  // TODO: error checking not implemented yet
+  return 1;
 }
 
 void handleNotFound(){
@@ -203,4 +250,13 @@ String getDataType(String path){
   else if(path.endsWith(".pdf")) return "application/pdf";
   else if(path.endsWith(".zip")) return "application/zip";
   else return "text/htm";
+}
+
+String bssidToString( uint8_t *bssid ) {
+
+  char mac[18] = {0};
+
+  sprintf( mac,"%02X:%02X:%02X:%02X:%02X:%02X", bssid[0],  bssid[1],  bssid[2], bssid[3], bssid[4], bssid[5] );
+  return String( mac );
+
 }
