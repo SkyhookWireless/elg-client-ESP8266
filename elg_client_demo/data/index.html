@@ -1,17 +1,26 @@
 <!DOCTYPE html>
-<head><link rel="stylesheet" href="/picnic.css"></link><link rel="stylesheet" href="/plugins.css"></link></head>
+<head>
+	<link rel="stylesheet" href="picnic.css"></link>
+	<link rel="stylesheet" href="plugins.css"></link>
+</head>
 
-<nav class="loading"><a href="/" class="brand"><span>SKYHOOK</span></a></nav>
+<nav class="loading"><a href="/" class="brand"><span>SKYHOOK&deg;</span></a></nav>
 
 <main>
-	<section class="flex five" style="padding-top: 80px;">
-		<article class="full">
+	<section class="flex center" style="text-align:left; width:90%; max-width:960px; padding-top: 80px; margin:auto;">
+		<article class="flex one center">
+			<h2 class="flex one center">Connect: </h2><br>
 			<div class="flex one center">
-				<div class="third">
-				<form action="/skyhookclient/changeap" method="post"><input class="stack" type="text" name="ssid" placeholder="SSID"><input class="stack" type="password" name="password" placeholder="Password"><input class="button stack" type="submit" value="Submit"></form>
-				</div>
+				<fieldset class="flex one center" style="max-width: 300px">
+					<form action="/skyhookclient/changeap" method="post" class="flex one center">
+						<input class="stack" type="text" name="ssid" placeholder="SSID"><input class="stack" type="password" name="password" placeholder="Password">
+						<input class="button stack" type="submit" value="Submit">
+					</form>
+				</fieldset>
 			</div>
 		</article>
 	</section>
 </main>
+<script>
+</script>
 </html>

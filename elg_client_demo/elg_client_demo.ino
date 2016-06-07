@@ -40,6 +40,7 @@ class WiFiWrapper{
 
   // run this function and then run init_check_connection
   void connect_to(String ssid, String password){
+    WiFi.disconnect();
     WiFi.begin(ssid.c_str(),password.c_str());
     init_check_finish = false;
     previousMillis = 0;
@@ -124,6 +125,7 @@ void setup() {
   server.on("/skyhookclient/scan", HTTP_GET, handleScan);
   server.on("/plugins.css", HTTP_GET, handleResources);
   server.on("/picnic.css", HTTP_GET, handleResources);
+  server.on("/style.css", HTTP_GET, handleResources);
   server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
   server.onNotFound(handleNotFound);
 //  server.on("/skyhookclient/getlocation", HTTP_GET, getLocation);
@@ -218,7 +220,8 @@ void handleChangeAP(){
   if(server.hasArg("ssid") && server.hasArg("password")){
     Serial.println("SSID: " + server.arg("ssid"));
     Serial.println("Password: " + server.arg("password")); 
-    // server.send(200, "text/html", "<head></head><h1>Attemping to connect to SSID "+server.arg("ssid")+". AP will now shut down"+"</h1>");
+    server.sendHeader("Refresh","10; url=/");
+    server.send(200, "text/html", "<head></head><h1>Attemping to connect to SSID "+server.arg("ssid")+". AP will now shut down"+"</h1>");
   }
   
   // TODO: Tell user that the client will now disconnect and attempt to connect to the AP
@@ -239,7 +242,7 @@ void handleChangeAP(){
     Serial.println("Connected to WiFi");
     if(save_connected_network(server.arg("password"))){
       print_saved_networks();
-      server.send(200,"text/html", "<head></head><h1>AP connected and saved</h1>");
+      //server.send(200,"text/html", "<head></head><h1>AP connected and saved</h1>");
     }
     // Send as internval service error if AP can't be saved
     else{
