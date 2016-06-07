@@ -121,10 +121,9 @@ void setup() {
   
   // TODO: make a routes page that handles this for us
   server.on("/", handleRoot);
-  server.on("/jquery.js", HTTP_GET, handleResources);
   server.on("/skyhookclient/scan", HTTP_GET, handleScan);
-  server.on("/bootstrap.min.css", HTTP_GET, handleResources);
-  server.on("/bootstrap.min.js", HTTP_GET, handleResources);
+  server.on("/plugins.css", HTTP_GET, handleResources);
+  server.on("/picnic.css", HTTP_GET, handleResources);
   server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
   server.onNotFound(handleNotFound);
 //  server.on("/skyhookclient/getlocation", HTTP_GET, getLocation);
@@ -152,28 +151,44 @@ void handleRoot() {
   else{
     connection = "Not connected :(";
   }
-  server.send(200, "text/html", "<head><link rel=\"stylesheet\" href=\"/bootstrap.min.css\"></link><script src=\"jquery.js\"></script></link><script src=\"bootstrap.min.js\"></script></head><h1>"+connection+"</h1><form action=\"/skyhookclient/changeap\" method=\"post\"><input type=\"text\" name=\"ssid\"><input type=\"password\" name=\"password\"><br><input type=\"submit\" value=\"Submit\"></form>");
-}
-
-void handleResources(){
-  // begin file mangament
-  
   Serial.println("Requesting " + server.uri());
 
   File f;
-  if(SPIFFS.exists(server.uri())){
-    f = SPIFFS.open(server.uri(), "r");
-    if(!f){
-      Serial.println(server.uri() + " does not exist");
-    }
-    if(server.streamFile(f, getDataType(server.uri())) != f.size()){
-      Serial.println("Error");
-    }
-    f.close();
+  f = SPIFFS.open("/index.html", "r");
+  if(!f){
+    Serial.println(server.uri() + " does not exist");
   }
-  else{
-    server.send(404, "text/html", "<head></head><h1>404 Not Found</h1>");
+  if(server.streamFile(f, "text/html") != f.size()){
+    Serial.println("Error");
   }
+  f.close();
+}
+
+void handleResources(){
+  Serial.println("Requesting: " + server.uri());
+  // begin file mangament
+  String path = server.uri();
+  String dataType = "text/plain";
+  if(path.endsWith("/")) path += "index.htm";
+
+  if(path.endsWith(".src")) path = path.substring(0, path.lastIndexOf("."));
+  else if(path.endsWith(".htm")) dataType = "text/html";
+  else if(path.endsWith(".css")) dataType = "text/css";
+  else if(path.endsWith(".js")) dataType = "application/javascript";
+  else if(path.endsWith(".png")) dataType = "image/png";
+  else if(path.endsWith(".gif")) dataType = "image/gif";
+  else if(path.endsWith(".jpg")) dataType = "image/jpeg";
+  else if(path.endsWith(".ico")) dataType = "image/x-icon";
+  else if(path.endsWith(".xml")) dataType = "text/xml";
+  else if(path.endsWith(".pdf")) dataType = "application/pdf";
+  else if(path.endsWith(".zip")) dataType = "application/zip";
+  File dataFile = SPIFFS.open(path.c_str(), "r");
+  if (server.hasArg("download")) dataType = "application/octet-stream";
+  if (server.streamFile(dataFile, dataType) != dataFile.size()) {
+    Serial.println("Error");
+  }
+
+  dataFile.close();
 }
 
 // Returns a JSON of scanned networks
@@ -316,20 +331,6 @@ bool save_connected_network(String password){
 
 void handleNotFound(){
   server.send(404, "text/html", "<head></head><h1>404 Not Found</h1>");
-}
-
-String getDataType(String path){
-  if(path.endsWith(".htm")) return "text/html";
-  else if(path.endsWith(".css")) return "text/css";
-  else if(path.endsWith(".js")) return "application/javascript";
-  else if(path.endsWith(".png")) return "image/png";
-  else if(path.endsWith(".gif")) return "image/gif";
-  else if(path.endsWith(".jpg")) return "image/jpeg";
-  else if(path.endsWith(".ico")) return "image/x-icon";
-  else if(path.endsWith(".xml")) return "text/xml";
-  else if(path.endsWith(".pdf")) return "application/pdf";
-  else if(path.endsWith(".zip")) return "application/zip";
-  else return "text/htm";
 }
 
 String encryptionTypeStr(uint8_t authmode) {
