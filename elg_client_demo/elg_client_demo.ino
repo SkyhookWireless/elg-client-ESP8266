@@ -38,6 +38,7 @@ class WiFiWrapper{
     return init_check_finish;
   }
 
+
   // run this function and then run init_check_connection
   void connect_to(String ssid, String password){
     WiFi.disconnect();
@@ -121,13 +122,19 @@ void setup() {
   Serial.println(myIP);
   
   // TODO: make a routes page that handles this for us
+  // TODO: parse a routes file to handle resources
+
   server.on("/", handleRoot);
   server.on("/skyhookclient/scan", HTTP_GET, handleScan);
-  server.on("/plugins.css", HTTP_GET, handleResources);
-  server.on("/picnic.css", HTTP_GET, handleResources);
-  server.on("/style.css", HTTP_GET, handleResources);
   server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
   server.onNotFound(handleNotFound);
+  
+  server.on("/resources/plugins.min.css", HTTP_GET, handleResources);
+  server.on("/resources/picnic.min.css", HTTP_GET, handleResources);
+  server.on("/resources/umbrella.min.js", HTTP_GET, handleResources);
+  server.on("/resources/animate.min.css", HTTP_GET, handleResources);
+  server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
+  
 //  server.on("/skyhookclient/getlocation", HTTP_GET, getLocation);
   server.begin();
   Serial.println("HTTP server started");
@@ -147,7 +154,8 @@ void handleRoot() {
   // TODO scan surrounding networks
   // TODO: Server send general HTML with requests for scan list instead of waiting for the scan
   String connection = "";
-  if(WiFi.SSID() != NULL && WiFi.status() == WL_CONNECTED){
+  if(WiFi.SSID() != NULL && WiFi.status
+  () == WL_CONNECTED){
     connection = "Connected To: " + WiFi.SSID();
   }
   else{
@@ -177,6 +185,7 @@ void handleResources(){
   else if(path.endsWith(".htm")) dataType = "text/html";
   else if(path.endsWith(".css")) dataType = "text/css";
   else if(path.endsWith(".js")) dataType = "application/javascript";
+  else if(path.endsWith(".svg")) dataType = "image/svg+xml";
   else if(path.endsWith(".png")) dataType = "image/png";
   else if(path.endsWith(".gif")) dataType = "image/gif";
   else if(path.endsWith(".jpg")) dataType = "image/jpeg";
@@ -202,17 +211,20 @@ void handleScan(){
   
   for (int i = 0; i < n; i++){
     DynamicJsonBuffer scan_info_buf;
-    JsonObject& scan_info = scan_obj.createNestedObject(WiFi.BSSIDstr(i));
-    scan_info["ssid"]=WiFi.SSID(i);
+    JsonObject& scan_info = scan_obj.createNestedObject(WiFi.SSID(i));
+    scan_info["bssid"]=WiFi.BSSIDstr(i);
     scan_info["channel"] = WiFi.channel(i);
     scan_info["rssi"] = WiFi.RSSI(i);
     scan_info["encrypt"] = encryptionTypeStr(WiFi.encryptionType(i));
+    scan_info["hidden"] = WiFi.isHidden(i);
   }
+  
+  size_t len = scan_obj.measurePrettyLength();
+  char* responseJSON = (char*)malloc((scan_obj.measureLength()+1) * sizeof(char));
+  scan_obj.printTo(responseJSON, scan_obj.measureLength()+1);
   scan_obj.prettyPrintTo(Serial);
-    size_t len = scan_obj.measurePrettyLength();
-  char* responseJSON = (char*)malloc(scan_obj.measurePrettyLength() * sizeof(char));
-  scan_obj.prettyPrintTo(responseJSON, scan_obj.measurePrettyLength());
   server.send(200,"application/json",responseJSON);
+  free(responseJSON);
 }
 // TODO: on client side, notify them that changing AP will disconnect them
 void handleChangeAP(){
@@ -259,8 +271,8 @@ void handleChangeAP(){
 
 void print_saved_networks(){
   char APjson[417];
-  if(SPIFFS.exists("/AP.json")){
-    File a = SPIFFS.open("/AP.json","r");
+  if(SPIFFS.exists("/resources/AP.json")){
+    File a = SPIFFS.open("/resources/AP.json","r");
     a.readBytesUntil(0,APjson,417);
     a.close();
   }
@@ -279,8 +291,8 @@ bool save_connected_network(String password){
   String bssid = WiFi.BSSIDstr();
   Serial.println(bssid);
   // write existing data to a buffer
-  if(SPIFFS.exists("/AP.json")){
-    File a = SPIFFS.open("/AP.json","r");
+  if(SPIFFS.exists("/resources/AP.json")){
+    File a = SPIFFS.open("/resources/AP.json","r");
     a.readBytesUntil(0,APjson,417);
     a.close();
   }
@@ -306,11 +318,11 @@ bool save_connected_network(String password){
   bssid_info["pw"] = password;
 
   // remove the tmp file check
-  if(!SPIFFS.exists("/APtmp.json")){
-    SPIFFS.remove("/APtmp.json");
+  if(!SPIFFS.exists("/resources/APtmp.json")){
+    SPIFFS.remove("/resources/APtmp.json");
   }
   
-  File b = SPIFFS.open("/APtmp.json","w+");
+  File b = SPIFFS.open("/resources/APtmp.json","w+");
   // ERROR: file couldn't be open or created
   if(!b){
     return 0;
@@ -320,11 +332,11 @@ bool save_connected_network(String password){
   b.close();
 
   // delete the old AP list and update the new one to have the same name
-  SPIFFS.remove("/AP.json");
-  SPIFFS.rename("/APtmp.json", "/AP.json");
+  SPIFFS.remove("/resources/AP.json");
+  SPIFFS.rename("/resources/APtmp.json", "/resources/AP.json");
 
   // double checks that the JSON exists
-  if(SPIFFS.exists("/AP.json")){
+  if(SPIFFS.exists("/resources/AP.json")){
     return 1;
   }
   else{
