@@ -9,14 +9,20 @@
 		.hidden {
 		    display: none;
 		}
+		button{
+			background:#0e4d95;
+		}
+		.button{
+			background:#0e4d95;
+		}
 	</style>
 	<!-- toggle switch -->
 	<style>
 		.switch {
 		  position: relative;
 		  display: inline-block;
-		  width: 34px;
-		  height: 60px;
+		  width: 60px;
+		  height: 34px;
 		}
 
 		.switch input {display:none;}
@@ -50,13 +56,12 @@
 		}
 
 		input:focus + .slider {
-		  box-shadow: 0 0 1px #0e4d95;
 		}
 
 		input:checked + .slider:before {
-		  -webkit-transform: translateY(-26px);
-		  -ms-transform: translateY(-26px);
-		  transform: translateY(-26px);
+		  -webkit-transform: translateX(26px);
+		  -ms-transform: translateX(26px);
+		  transform: translateX(26px);
 		}
 		</style>
 	<!-- loading animation -->
@@ -130,12 +135,19 @@
   <label class="pseudo button toggle" for="tab-3">Systems Panel</label>
   <div class="row">
     <div>
-      
+      <div class="sk-wave hidden" for="current">
+	        <div class="sk-rect sk-rect1"></div>
+	        <div class="sk-rect sk-rect2"></div>
+	        <div class="sk-rect sk-rect3"></div>
+	        <div class="sk-rect sk-rect4"></div>
+	        <div class="sk-rect sk-rect5"></div>
+	      </div>
     </div>
 
     <div>
-    	<button class="special" style>Scan for Networks</button>
-	      <div class="sk-wave hidden">
+    <br>
+    	<a class="special button" style>Scan for Networks</a>
+	      <div class="sk-wave hidden" for="network">
 	        <div class="sk-rect sk-rect1"></div>
 	        <div class="sk-rect sk-rect2"></div>
 	        <div class="sk-rect sk-rect3"></div>
@@ -147,53 +159,165 @@
     </div>
 
     <div>
-			<label class="switch">
-			  <input class="toggle" data-wut="hehe" type="checkbox">
-			  <div class="slider"></div>
-			</label>
+    	<div class='flex three center'>
+	    	<article class="card">
+	    		<header>
+	    				<span>NAP</span>
+	    		</header>
+	    		<footer>
+	    			<div class="flex two center">
+							<div style="text-align:center">
+								<label class="switch">
+								  <input class="toggle" data-wut="hehe" type="checkbox">
+								  <div class="slider"></div>
+								</label>
+							</div>
+						</div>
+					</footer>
+				</article>
+				<article class="card">
+  				<header><span>Reverse Geo</span></header>
+  				<footer>
+  					<div>
+	    					<div style="text-align:center">
+									<label class="switch">
+									  <input class="toggle" data-wut="hehe" type="checkbox">
+									  <div class="slider"></div>
+									</label>
+								</div>
+							</div>
+  				</footer>
+				</article>
+			</div>
+			<div class='flex two center'>
+				<article class="card">
+					<header>
+						<span> Scan Frequency </span>
+					</header>
+					<footer>
+						<div>
+							<label><input type="number" placeholder="ms" min="200"></label>
+						</div>
+					</footer>
+				</article>
+			</div>
     </div>
   </div>
-</div>
 </main>
-
+<div class="modal">
+  <input id="modal_1" type="checkbox" />
+  <label class="overlay"></label>
+  <article>
+    <header>
+      <h3>Enter the Wifi Password</h3>
+      <label for="modal_1" class="close">&times;</label>
+    </header>
+    <section class="content">
+    	<span class="hidden warning button stack error">AP is on a different channel! You may be disconnect while connecting...</span>
+      <input type="password" placeholder="Password" />
+    </section>
+    <footer>
+      <label class="button changeap">
+        Connect
+      </label>
+    </footer>
+  </article>
+</div>
 <script>
-	var thing = function(ssid, bssid, rssi, encryption_type, channel, hidden){
-		return "<article class='stack animated fadeInDown show card'><header><div class='flex two'><div>"+ssid+"</div><div>"+rssi+"</div></div></header><article class='hidden card'><footer><div class='testing flex two'><div>E:"+encryption_type+"<br>B:"+bssid+"<br>C:"+channel+"<br>H:"+hidden+"<br></div><div>chart</div></div></footer></article></article>"
+	var selected_network = "";
+	var getWifiDisplayTemplate = function(ssid, bssid, rssi, encryption_type, channel, hidden){
+		return "<article class='stack animated fadeInDown card'><header class='show'><div class='flex two'><div>"+ssid+"</div><div>"+rssi+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>E:"+encryption_type+"<br>B:"+bssid+"<br>C:"+channel+"<br>H:"+hidden+"<br></div><div class='two-fifth'>chart</div><div class='fifth'><label for='modal_1' class='button connectap' style='position: absolute; bottom: .8em; right: .8em;' data-ssid='"+ssid+"''>Connect</label></div></div></footer></article></article>"
 	};
 	var scan = function(){
-		console.log('scanning')
-	  	var action = 'skyhookclient/scan';
+		console.log('scanning');
+  	var action = 'skyhookclient/scan';
 		var after = function(err, data){
+			console.log("attempting to remove class")
 			Object.keys(data).forEach(function(key) {
 		    	var network_item = data[key];
-		    	// console.log(thing(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
-		    	u('.aps').append(thing(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
+		    	// console.log(getWifiDisplayTemplate(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
+		    	u('.aps').append(getWifiDisplayTemplate(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
 			});
-			u('.sk-wave').addClass('hidden');
+			u('.sk-wave[for=network]').addClass('hidden');
 			reset();
 		}
 		var before = function(xhr){
 			xhr.responseType = 'json';
-			u('.sk-wave').removeClass('hidden')
+			u('.sk-wave[for=network]').removeClass('hidden')
 		};
 		ajax(action, {method:'GET'}, after, before);
 	};
 	var reset = function(){
+		console.log('reseting')
 		u('.show').off('click');
+		u('.connectap').off('click');
 		u('.show').on('click', function(e) {
-  			u(this).find('article').toggleClass('hidden')
-  		});
+  			u(this).siblings('article').toggleClass('hidden')
+  			console.log("show is clicking")
+		});
+		u('.connectap').on('click', function(e){
+			console.log('show modal clicked')
+			console.log(u(this).data('ssid'))
+			selected_network = u(this).data('ssid');
+			// TODO: Check if current channel and AP channel are different, if yes toggle warning
+		});
+	};
+	var getCurrentNetwork = function(){
+		var action = 'skyhookclient/getstatus';
+		var after = function(err, data){
+			console.log(data);
+			u('.sk-wave[for="current"]').addClass('hidden')
+		}
+		var before = function(xhr){
+			xhr.responseType = 'json';
+			u('.sk-wave[for="current"]').removeClass('hidden')
+		};
+		ajax(action, {method:'GET'}, after, before);
+	};
+	var connect_to_ap = function(ssid_input, password_input){
+		var action = 'skyhookclient/changeap';
+		var options = {method: 'POST', body: {ssid:ssid_input, password: password_input}};
+		var after = function(err, data){
+			console.log(data);
+			window.setTimeout(function () {
+        location.href = "/";
+    	}, 8000);
+		}
+		var before = function(xhr){
+			console.log("Attempting to connect to:"+ssid_input+" with password: "+password_input)
+			xhr.responseType = 'json';
+		};
+		ajax(action, options, after, before);
 	};
  	u('.special').on('click', function(e){
  		console.log('button click');
- 		console.log("attempting to remove class")
- 		u('.aps').children().remove();
+		u('.aps').children().remove();
  		scan();
 	});
-	if(u('.aps > article').length == 0){
-		console.log("initial scan")
-		scan();
+	u('.pseudo, .button, .toggle').on('click',function(){
+		if(u(this).attr('for')=='tab-1'){
+			console.log('tab 1');
+			getCurrentNetwork();
+		}
+		else if(u(this).attr('for')=='tab-2'){
+			if(u('.aps').children().length == 0){
+				console.log("tab-2 clicked")
+				console.log("initial scan")
+				scan();
+			}
+		}
+		else if(u(this).attr('for')=='tab-3'){
+			console.log('tab-3 clicked');
+		}
+	});
+	if(u('#tab-1').is(':checked')){
+		console.log('getting inital network status');
+		getCurrentNetwork();
 	}
+	u('.changeap').on('click', function(){
+		console.log("changeap button clicked");
+		connect_to_ap(selected_network, u('.changeap').closest('article').find('input').nodes[0].value);
+	});
 	u('.toggle').on('click', function() {
 
     // if (u('.toggle').is(':checked')) {
