@@ -365,3 +365,4 @@ int sky_decode_resp_bin_1(unsigned char *buff, int buff_len, int data_len, struc
     
     return 0;
 }
+

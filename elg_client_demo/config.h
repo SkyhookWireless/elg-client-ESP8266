@@ -38,6 +38,6 @@ const char *AP_SSID = "Skyhook ELG";
 #define SERIAL_BAUD_RATE 115200
 
 #define MAX_CHECK_TIMES 30
-
+#define SCAN_DEFAULT_FRQ 2000 // ms
 // micro OLED sparkfun
 // #define OLED_RESET

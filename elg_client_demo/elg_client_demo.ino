@@ -23,9 +23,8 @@
 
 // for the WiFiWrapper Class for when init_check_connection is called
 bool reverse_geo = true;
-bool NAP = false;
 bool HPE = true;
-unsigned long scan_frq = 5000;
+int scan_frq;
 
 struct aes_key_t key = {USERID, AES_KEY};
 struct location_req_t rq;
@@ -56,7 +55,8 @@ void handleResources();
 void handleScan();
 void handleChangeAP();
 void handleGetStatus();
-void handlePreferences();
+void handleGetPreferences();
+void handleChangePreferences();
 void handleNotFound();
 
 /* Set these to your desired credentials. */
@@ -262,7 +262,19 @@ class ClientWiFiWrapper{
       if (!client.connect(SKYHOOK_ELG_SERVER_URL, SKYHOOK_ELG_SERVER_PORT))
       {
           Serial.println("connection failed");
-          delay(1000);
+          oled.clearDisplay();
+          oled.setCursor(0,8);
+          oled.println("connection failed....retrying");
+          oled.display();
+          unsigned long now = millis();
+          while(true){
+            if(now - millis() > 1000){
+              break;
+            }
+            if(state.update()){
+              return;
+            }
+          }
           return;
       }
   
@@ -274,7 +286,6 @@ class ClientWiFiWrapper{
   }
   bool rx(){
       Serial.println("waiting");
-      bool rx_done = false;
   
       int n = client.available();
   
@@ -308,7 +319,6 @@ class ClientWiFiWrapper{
   
           print_location_resp(&resp);
   
-          rx_done = true;
           Serial.println("Rx done");
           sent = false;
           return true;
@@ -466,7 +476,7 @@ class ClientWiFiWrapper{
           }
           if(check_time >= 150){
             oled.clearDisplay();
-            oled.setCursor(8,0);
+            oled.setCursor(0,8);
             oled.println("No response, dumping request");
             oled.display();
             check_time = 0;
@@ -480,18 +490,73 @@ class ClientWiFiWrapper{
       update_oled();
       oled.refreshIcons();
       print_to_oled("Wifi Disconnected","");
-      if(state.update()){ 
+      if(state.update()){
+        sent = false; 
         check_time = 0;
         return;
       }
+      yield();
     }
     yield();
+  }
+
+  void location_json(){
+    while(true){
+      unsigned long now = millis();
+      if(WiFi.status() == WL_CONNECTED){
+        if(!sent){
+          // 10000
+          if(now-txTimer > scan_frq){
+            scan();
+            txTimer = now;
+            rxTimer = now;
+          }
+        }
+        else{//2500
+          if(now - rxTimer > WIFI_RX_WAIT_TIME && check_time < 150){
+            Serial.println("waijti");
+            if(rx()){
+              rxTimer = now;
+              check_time = 0;
+              char buf[10];
+              String address = "\"";
+              snprintf(buf, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
+              address += String(buf) + " ";
+              snprintf(buf, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
+              address += String(buf) + " ";
+              snprintf(buf, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
+              address += String(buf) + " ";
+              snprintf(buf, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
+              address += String(buf) + " ";
+              snprintf(buf, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
+              address += String(buf)+"\"";
+              server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+", \"reverse_geo\":"+address+"}");
+              return;
+            }
+            else{
+              Serial.println("No Repsonse, retyring");
+              check_time++;
+            }
+            if(check_time >= 150){
+              check_time = 0;
+              sent = false;
+              server.send(500,"application/json","{\"error\":\"No Response From ELG Server\"}");
+              return;
+            }
+          }
+        }
+      }
+      else{
+        server.send(500,"application/json","{\"error\":\"WiFi Disconnected\"}");
+      }
+      yield();
+    }
   }
 };
 
 APWiFiWrapper main_wifi;
 ClientWiFiWrapper client_req;
-int esp_state = 0;
+int esp_state = 1;
 
 void setup() {
 /* Uncomment the next line to make the RST pin/button a soft on/off button*/
@@ -503,10 +568,9 @@ void setup() {
 
   // Begin SPIFFS ESP8266 File system
   SPIFFS.begin();
-
+  scan_frq = SCAN_DEFAULT_FRQ;
   Serial.println("LOADING CONFIG");
   load_config();
-
   Serial.println("Currently On");
 
   uint8_t mac[WL_MAC_ADDR_LENGTH];
@@ -523,15 +587,16 @@ void setup() {
 
   // TODO: make a routes page that handles this for us
   // TODO: parse a routes file to handle resources
-  // TODO: load preferences from config.json file for NAP, Reverse Geo, and Scan Freq
+  // TODO: load preferences from preferences.json file for NAP, Reverse Geo, and Scan Freq
 
   // route setup (API Calls)
   server.on("/", handleRoot);
   server.on("/skyhookclient/scan", HTTP_GET, handleScan);
   server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
   server.on("/skyhookclient/getstatus", HTTP_GET, handleGetStatus);
-  server.on("/skyhookclient/getpreferences", HTTP_GET, handlePreferences);
-  // server.on("/skyhookclient/getlocation", HTTP_GET, getLocation);
+  server.on("/skyhookclient/getpreferences", HTTP_GET, handleGetPreferences);
+  server.on("/skyhookclient/changepreferences", HTTP_POST, handleChangePreferences);
+  server.on("/skyhookclient/getlocation", HTTP_GET, handleLocation);
   server.onNotFound(handleNotFound);
 
   // scripts and css files for the web interface
@@ -549,7 +614,7 @@ void setup() {
 }
 
 void handleLocation(){
-  Serial.println("There is probs data");
+  client_req.location_json();
 }
 
 void loop() {
@@ -569,12 +634,14 @@ void loop() {
 
 void load_config(){
   String config_json;
-  if (SPIFFS.exists("/resources/config.json")) {
-    File a = SPIFFS.open("/resources/config.json", "r");
+  if (SPIFFS.exists("/resources/preferences.json")) {
+    File a = SPIFFS.open("/resources/preferences.json", "r");
     Serial.println("Reading file........");
     while(a.available()){
       config_json += (char)a.read();
     }
+    Serial.println("printing cconfig");
+    Serial.println(config_json);
     a.close();
   }
   else{
@@ -583,14 +650,17 @@ void load_config(){
   DynamicJsonBuffer config_obj_buf;
   JsonObject& config_obj = config_obj_buf.parseObject(config_json);
   scan_frq = config_obj["scan_freq"];
-  NAP = config_obj["NAP"];
   HPE = config_obj["HPE"];
   reverse_geo = config_obj["reverse_geo"];
+
+  Serial.println("config json");
+  config_obj.printTo(Serial);
 }
-void handlePreferences(){
+
+void handleGetPreferences(){
   String config_json;
-  if (SPIFFS.exists("/resources/config.json")) {
-    File a = SPIFFS.open("/resources/config.json", "r");
+  if (SPIFFS.exists("/resources/preferences.json")) {
+    File a = SPIFFS.open("/resources/preferences.json", "r");
     if (server.streamFile(a, "application/json") != a.size()) {
       Serial.println("Error");
     }
@@ -604,6 +674,81 @@ void change_state(){
   }
   else{
     print_to_oled("Client", "");
+  }
+}
+
+void handleChangePreferences(){
+  Serial.println("User is trying to change Preferences");
+  String preferences;
+  if (server.hasArg("HPE") && server.hasArg("reverse_geo") && server.hasArg("scan_freq")) {
+    String HPE_user = server.arg("HPE");
+
+    if (SPIFFS.exists("/resources/preferences.json")) {
+      File a = SPIFFS.open("/resources/preferences.json", "r");
+      while(a.available()){
+        preferences += (char)a.read();
+      }
+      a.close();
+      Serial.println("before");
+      Serial.println(preferences);
+      //a.seek(0,SeekSet);
+      
+      DynamicJsonBuffer pref_obj_buf;
+      JsonObject& pref_obj = pref_obj_buf.parseObject(preferences);
+      pref_obj["HPE"] = string_to_bool(server.arg("HPE"));
+      pref_obj["reverse_geo"] = string_to_bool(server.arg("reverse_geo"));
+      int scan_freq_input = server.arg("scan_freq").toInt();
+      if(scan_freq_input < 200){
+        scan_freq_input = SCAN_DEFAULT_FRQ;
+      }
+      pref_obj["scan_freq"] = scan_freq_input;
+
+      if (!SPIFFS.exists("/resources/preferencesTmp.json")) {
+        SPIFFS.remove("/resources/preferencesTmp.json");
+      }
+    
+      File b = SPIFFS.open("/resources/preferencesTmp.json", "w");
+      // ERROR: file couldn't be open or created
+      if (!b) {
+        server.send(500);
+        return;
+      }
+      // write to file
+      pref_obj.printTo(b);
+      b.close();
+
+      Serial.println("after");
+      pref_obj.printTo(Serial);
+      
+      // delete the old AP list and update the new one to have the same name
+      SPIFFS.remove("/resources/preferences.json");
+      SPIFFS.rename("/resources/preferencesTmp.json", "/resources/preferences.json");
+    
+      // double checks that the JSON exists
+      if (SPIFFS.exists("/resources/preferences.json")) {
+        server.send(200, "application/json", "{\"error\":\"none\"}");
+      }
+      else {
+        server.send(500);
+      }
+    }
+    else{
+      Serial.println("uhh no config file");
+      server.send(500, "application/json", "{\"error\":\"config file not found\"}");
+    }
+  }
+  else{
+    Serial.println("incomplete request");
+  }
+}
+
+bool string_to_bool(String input){
+  input.toLowerCase();
+  if(input == "true"){
+    return true;
+  }
+  else{
+    return false;
   }
 }
 
@@ -659,7 +804,9 @@ void print_location_oled(){
       oled.println("INFO:");
       oled.println("LAT: " + String(resp.location.lat, 5));
       oled.println("LON: " + String(resp.location.lon, 5));
-      oled.println("HPE: " + String(resp.location.hpe, 5));
+      if(HPE){
+        oled.println("HPE: " + String(resp.location.hpe, 5));
+      }
       oled.display();
       page1_done = true;
     }
@@ -871,26 +1018,38 @@ void print_saved_networks() {
   JsonObject& bssid_obj = bssid_obj_buf.parseObject(APjson);
   bssid_obj.prettyPrintTo(Serial);
 }
-
+void print_saved_preferences(){
+  String pref;
+  if (SPIFFS.exists("/resources/preferences.json")) {
+    File a = SPIFFS.open("/resources/preferences.json", "r");
+    while(a.available()){
+      pref += (char)a.read();
+    }
+  }
+  DynamicJsonBuffer bssid_obj_buf;
+  JsonObject& bssid_obj = bssid_obj_buf.parseObject(pref);
+  bssid_obj.prettyPrintTo(Serial);
+}
 // Function will save the connected network into JSON formated file
 // TODO: Impose number of saved networks (currently magic numbers are
 // configured to three bssids
 bool save_connected_network(String password) {
   // TODO: make configue file for magic numbers
   // 417 Because of max ssid and password calculation (will document)
-  char APjson[417];
+  String APjson;
   String bssid = WiFi.BSSIDstr();
   Serial.println(bssid);
   // write existing data to a buffer
   if (SPIFFS.exists("/resources/AP.json")) {
     File a = SPIFFS.open("/resources/AP.json", "r");
-    a.readBytesUntil(0, APjson, 417);
+    while(a.available()){
+      APjson += (char)a.read();
+    }
     a.close();
   }
   // if ssid/pw storage doesn't exist, make an empty json array
   else {
-    APjson[0] = '{';
-    APjson[1] = '}';
+    APjson="{}";
   }
 
   // dynamic buffers (should only be used for devices with larger RAM)
@@ -908,12 +1067,14 @@ bool save_connected_network(String password) {
   bssid_info["ssid"] = WiFi.SSID();
   bssid_info["pw"] = password;
 
+  bssid_obj.prettyPrintTo(Serial);
+
   // remove the tmp file check
   if (!SPIFFS.exists("/resources/APtmp.json")) {
     SPIFFS.remove("/resources/APtmp.json");
   }
 
-  File b = SPIFFS.open("/resources/APtmp.json", "w+");
+  File b = SPIFFS.open("/resources/APtmp.json", "w");
   // ERROR: file couldn't be open or created
   if (!b) {
     return 0;
@@ -955,5 +1116,6 @@ String encryptionTypeStr(uint8_t authmode) {
       return "?";
   }
 }
+
 
 

@@ -74,3 +74,4 @@ void sha(unsigned char *clrtext, unsigned char ciph[])
     hmac256_update(&ctx, clrtext, strlen((char *) clrtext));
     hmac256_final(&ctx, ciph);
 }
+

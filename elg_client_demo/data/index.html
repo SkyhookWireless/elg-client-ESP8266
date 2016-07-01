@@ -15,6 +15,13 @@
 		.button{
 			background:#0e4d95;
 		}
+		.itemStack div, .itemStack article{
+			padding-bottom:0px;
+			margin-bottom:0px;
+		}
+		.card{
+			margin-bottom: 0px;
+		}
 	</style>
 	<!-- toggle switch -->
 	<style>
@@ -135,13 +142,106 @@
   <label class="pseudo button toggle" for="tab-3">Systems Panel</label>
   <div class="row">
     <div>
+    <br>
       <div class="sk-wave hidden" for="current">
+        <div class="sk-rect sk-rect1"></div>
+        <div class="sk-rect sk-rect2"></div>
+        <div class="sk-rect sk-rect3"></div>
+        <div class="sk-rect sk-rect4"></div>
+        <div class="sk-rect sk-rect5"></div>
+      </div>
+      <div class="networkInfo hidden">
+      	<div class="flex five center itemStack">
+					<div class='flex three-fifth center'>
+						<div class='flex full center'>
+							<article class="card">
+								<header>
+									<span>BSSID: <span style="font-weight:normal" id='bssid'></span></span>
+								</header>
+							</article>
+						</div>
+					</div>
+					<div class='flex three-fifth center'>
+						<div class='flex full center'>
+							<article class="card">
+								<header>
+									<span>MAC: <span style="font-weight:normal" id='mac'></span></span>
+								</header>
+							</article>
+						</div>
+					</div>
+				</div>
+	    	<div class='flex five center'>
+		    	<article class="card">
+		    		<header>
+		    				<span>SSID</span>
+		    		</header>
+		    		<footer id='ssid'>
+		    			<span>N/A</span>
+						</footer>
+					</article>
+					<article class="card">
+	  				<header><span>IP Address</span></header>
+	  				<footer id='ipaddress'>
+	  					<span>N/A</span>
+	  				</footer>
+					</article>
+					<article class="card">
+	  				<header><span>Channel</span></header>
+	  				<footer id='channel'>
+	  					<span>N/A</span>
+	  				</footer>
+					</article>
+				</div>
+	    </div>
+	    <div>
+	    <br>
+    		<button class="button locate hidden">
+    			Locate Me
+    		</button>
+    		<div class="sk-wave hidden" for="location">
 	        <div class="sk-rect sk-rect1"></div>
 	        <div class="sk-rect sk-rect2"></div>
 	        <div class="sk-rect sk-rect3"></div>
 	        <div class="sk-rect sk-rect4"></div>
 	        <div class="sk-rect sk-rect5"></div>
 	      </div>
+	    </div>
+	    <br>
+	    <div class='locationInfo hidden'>
+	    	<div class='flex four center'>
+		    	<article class="card">
+		    		<header>
+		    				<span>LAT</span>
+		    		</header>
+		    		<footer>
+		    			<span id='LAT'>N/A</span>
+						</footer>
+					</article>
+					<article class="card">
+	  				<header><span>LON</span></header>
+	  				<footer>
+	  					<span id='LON' >N/A</span>
+	  				</footer>
+					</article>
+				</div>
+				<div class='flex four center'>
+					<div class='flex half center'>
+						<article class='card'>
+							<header>
+								<span>
+									Reverse Geo
+								</span>
+							</header>
+							<footer>
+								<span id='reverse_geo'>
+									N/A
+								</span>
+							</footer>
+						</article>
+					</div>
+				</div>
+			</div>
     </div>
 
     <div>
@@ -159,16 +259,17 @@
     </div>
 
     <div>
+    <br>
     	<div class='flex three center'>
 	    	<article class="card">
 	    		<header>
-	    				<span>NAP</span>
+	    				<span>HPE</span>
 	    		</header>
 	    		<footer>
 	    			<div class="flex two center">
 							<div style="text-align:center">
 								<label class="switch">
-								  <input class="toggle" data-wut="hehe" type="checkbox">
+								  <input id="pref_hpe" for="HPE" class="toggle pref" type="checkbox">
 								  <div class="slider"></div>
 								</label>
 							</div>
@@ -181,7 +282,7 @@
   					<div>
 	    					<div style="text-align:center">
 									<label class="switch">
-									  <input class="toggle" data-wut="hehe" type="checkbox">
+									  <input id="pref_reverse_geo" for="reverse_geo" class="toggle pref" type="checkbox">
 									  <div class="slider"></div>
 									</label>
 								</div>
@@ -196,10 +297,15 @@
 					</header>
 					<footer>
 						<div>
-							<label><input type="number" placeholder="ms" min="200"></label>
+							<label><input id="pref_scan_freq" type="number" placeholder="ms" min="1000"></label>
 						</div>
 					</footer>
 				</article>
+			</div>
+			<div>
+				<a id="pref" class="button" style>Save Preferences</a>
+			</div>
+			<div>
 			</div>
     </div>
   </div>
@@ -266,14 +372,51 @@
 		var action = 'skyhookclient/getstatus';
 		var after = function(err, data){
 			console.log(data);
-			u('.sk-wave[for="current"]').addClass('hidden')
+			u('.sk-wave[for="current"]').addClass('hidden');
+			if(data['connected'] == true){
+				u('.networkInfo').removeClass('hidden animated fadeOut');
+				u('.networkInfo').addClass('animated fadeIn')
+				u('.locate').removeClass('hidden');
+				u('.locate').addClass('animated fadeInDown');
+				u('#bssid').html(data['bssid']);
+				u('#mac').html(data['mac']);
+				u('#ssid > span').html(data['ssid']);
+				u('#ipaddress > span').html(data['local_ip']);
+				u('#channel > span').html(data['channel']);
+			}
+			else{
+				u('.locate').addClass('hidden');
+				u('.locate').removeClass('animated fadeInDown');
+				u('#bssid').html('BSSID: N/A');
+				u('#mac').html('MAC: N/A');
+				u('#ssid > span').html('N/A');
+				u('#ipaddress > span').html('N/A');
+				u('#channel > span').html('N/A');
+			}
 		}
 		var before = function(xhr){
 			xhr.responseType = 'json';
 			u('.sk-wave[for="current"]').removeClass('hidden')
+			u('.networkInfo').addClass('hidden animated fadeOut');
 		};
 		ajax(action, {method:'GET'}, after, before);
 	};
+	var getPreferences = function(){
+		var action = 'skyhookclient/getpreferences';
+		var after = function(err,data){
+			console.log(data);
+			if(data['HPE'] == true){
+				u('#pref_hpe').attr('checked',true);
+			}
+			if(data['reverse_geo'] == true){
+				u('#pref_reverse_geo').attr('checked',true);
+			}
+		};
+		var before = function(xhr){
+			xhr.responseType = 'json';
+		}
+		ajax(action, {method:'GET'}, after, before);
+	}
 	var connect_to_ap = function(ssid_input, password_input){
 		var action = 'skyhookclient/changeap';
 		var options = {method: 'POST', body: {ssid:ssid_input, password: password_input}};
@@ -289,6 +432,35 @@
 		};
 		ajax(action, options, after, before);
 	};
+	var display_location = function(){
+		console.log('getting location');
+  		var action = 'skyhookclient/getlocation';
+		var after = function(err, data){
+			if(data['error'] != null){
+				u('.locate').addClass('error');
+			}
+			else{
+				u('.locate').addClass('success');
+				console.log(data['LAT']);
+				console.log(data['LON']);
+				console.log(data['reverse_geo']);
+				u('#LAT').html(data['LAT']);
+				u('#LON').html(data['LON']);
+				u('#reverse_geo').html(data['reverse_geo']);
+				u('.sk-wave[for=location]').addClass('hidden');
+				u('.locationInfo').removeClass('hidden');
+				u('.locationInfo').addClass('animated fadeIn')
+			}
+		}
+		var before = function(xhr){
+			xhr.responseType = 'json';
+			u('.sk-wave[for=location]').removeClass('hidden')
+			u('.locationInfo').addClass('hidden');
+			u('.locate').removeClass('error');
+			u('.locate').removeClass('success');
+		};
+		ajax(action, {method:'GET'}, after, before);
+	};
  	u('.special').on('click', function(e){
  		console.log('button click');
 		u('.aps').children().remove();
@@ -297,6 +469,8 @@
 	u('.pseudo, .button, .toggle').on('click',function(){
 		if(u(this).attr('for')=='tab-1'){
 			console.log('tab 1');
+			u('.locate').addClass('hidden');
+			u('.locate').removeClass('animated fadeIn success error');
 			getCurrentNetwork();
 		}
 		else if(u(this).attr('for')=='tab-2'){
@@ -308,25 +482,41 @@
 		}
 		else if(u(this).attr('for')=='tab-3'){
 			console.log('tab-3 clicked');
+			getPreferences();
 		}
 	});
-	if(u('#tab-1').is(':checked')){
-		console.log('getting inital network status');
-		getCurrentNetwork();
-	}
 	u('.changeap').on('click', function(){
 		console.log("changeap button clicked");
 		connect_to_ap(selected_network, u('.changeap').closest('article').find('input').nodes[0].value);
 	});
-	u('.toggle').on('click', function() {
-
-    // if (u('.toggle').is(':checked')) {
-    //     console.log('checked');
-    // }
-    // else {
-    //     // code
-    // }
-    u('.toggle:checked').each(function(){console.log('hi')})
-})
+	u('.locate').on('click',function(){
+		display_location();
+	});
+	u('#pref').on('click',function(){
+		var scan_freq_input = 2000;
+		var HPE_input = false;
+		var reverse_geo_input = false;
+		u('input.pref').each(function(node, i){
+			if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
+				HPE_input = true;
+			}
+			if(u(node).attr('for')=='reverse_geo' && u(node).is(':checked')){
+				reverse_geo_input = true;
+			}
+		});
+		var action = 'skyhookclient/changepreferences';
+		scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
+		var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input}};
+		var after = function(err, data){
+			console.log('prferences changed!')
+			//TODO reflect changes here
+		}
+		var before = function(xhr){
+			console.log(HPE_input);
+			xhr.responseType = 'json';
+		};
+		ajax(action, options, after, before);
+	});
+	getCurrentNetwork();
 </script>
 </html>

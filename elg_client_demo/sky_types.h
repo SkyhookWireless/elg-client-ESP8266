@@ -350,3 +350,4 @@ struct location_resp_t
 #ifdef __cplusplus
 }
 #endif
+

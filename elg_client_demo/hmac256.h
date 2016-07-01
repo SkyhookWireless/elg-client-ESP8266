@@ -33,3 +33,4 @@ typedef struct {
 void hmac256_init(SHA256_CTX *ctx);
 void hmac256_update(SHA256_CTX *ctx, const BYTE data[], size_t len);
 void hmac256_final(SHA256_CTX *ctx, BYTE hash[]);
+

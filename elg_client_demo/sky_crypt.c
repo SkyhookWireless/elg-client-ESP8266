@@ -103,3 +103,4 @@ uint16_t fletcher16(uint8_t const *buff, int buff_len)
 
     return s2 << 8 | s1;
 }
+
