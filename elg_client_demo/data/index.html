@@ -268,8 +268,8 @@
 	    		<footer>
 	    			<div class="flex two center">
 							<div style="text-align:center">
-								<label class="switch">
-								  <input id="pref_hpe" for="HPE" class="toggle pref" type="checkbox">
+								<label id="pref_hpe" class="switch">
+								  <input for="HPE" class="toggle pref" type="checkbox">
 								  <div class="slider"></div>
 								</label>
 							</div>
@@ -281,8 +281,8 @@
   				<footer>
   					<div>
 	    					<div style="text-align:center">
-									<label class="switch">
-									  <input id="pref_reverse_geo" for="reverse_geo" class="toggle pref" type="checkbox">
+									<label id="pref_reverse_geo" class="switch">
+									  <input for="reverse_geo" class="toggle pref" type="checkbox">
 									  <div class="slider"></div>
 									</label>
 								</div>
@@ -385,6 +385,8 @@
 				u('#channel > span').html(data['channel']);
 			}
 			else{
+				u('.networkInfo').removeClass('hidden animated fadeOut');
+				u('.networkInfo').addClass('animated fadeIn')
 				u('.locate').addClass('hidden');
 				u('.locate').removeClass('animated fadeInDown');
 				u('#bssid').html('BSSID: N/A');
@@ -406,14 +408,19 @@
 		var after = function(err,data){
 			console.log(data);
 			if(data['HPE'] == true){
-				u('#pref_hpe').attr('checked',true);
+				u('#pref_hpe > input').attr('checked',true);
 			}
 			if(data['reverse_geo'] == true){
-				u('#pref_reverse_geo').attr('checked',true);
+				u('#pref_reverse_geo > input').attr('checked',true);
 			}
+			u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
 		};
 		var before = function(xhr){
 			xhr.responseType = 'json';
+			u('#pref_hpe').html('');
+			u('#pref_reverse_geo').html('');
+			u('#pref_hpe').html('<input for="HPE" class="toggle pref" type="checkbox"><div class="slider"></div>');
+			u('#pref_reverse_geo').html('<input for="reverse_geo" class="toggle pref" type="checkbox"><div class="slider"></div>');
 		}
 		ajax(action, {method:'GET'}, after, before);
 	}
@@ -451,7 +458,7 @@
 				u('.locationInfo').removeClass('hidden');
 				u('.locationInfo').addClass('animated fadeIn')
 			}
-		}
+		};
 		var before = function(xhr){
 			xhr.responseType = 'json';
 			u('.sk-wave[for=location]').removeClass('hidden')
