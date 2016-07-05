@@ -319,20 +319,43 @@
       <label for="modal_1" class="close">&times;</label>
     </header>
     <section class="content">
-    	<span class="hidden warning button stack error">AP is on a different channel! You may be disconnect while connecting...</span>
+    	<span class="warning button stack error">Connecting to this AP may be disconnect you temporarily...</span>
       <input type="password" placeholder="Password" />
     </section>
     <footer>
-      <label class="button changeap">
+      <label style="float:right" class="button changeap" for="modal_1">
         Connect
       </label>
     </footer>
   </article>
 </div>
+<div class="modal">
+  <input id="modal_2" type="checkbox" />
+  <label class="overlay"></label>
+  <article>
+    <header>
+      <h3>Please Wait</h3>
+    </header>
+	    <section class="content">
+	      <div class="sk-wave">
+	        <div class="sk-rect sk-rect1"></div>
+	        <div class="sk-rect sk-rect2"></div>
+	        <div class="sk-rect sk-rect3"></div>
+	        <div class="sk-rect sk-rect4"></div>
+	        <div class="sk-rect sk-rect5"></div>
+	      </div>
+	    </section>
+    <footer>
+      <label class="hidden" id='close_loading' for="modal_2">
+      </label>
+    </footer>
+  </article>
+</div>
+<label for='modal_2' id='toggle_load' class="hidden">
 <script>
 	var selected_network = "";
 	var getWifiDisplayTemplate = function(ssid, bssid, rssi, encryption_type, channel, hidden){
-		return "<article class='stack animated fadeInDown card'><header class='show'><div class='flex two'><div>"+ssid+"</div><div>"+rssi+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>E:"+encryption_type+"<br>B:"+bssid+"<br>C:"+channel+"<br>H:"+hidden+"<br></div><div class='two-fifth'>chart</div><div class='fifth'><label for='modal_1' class='button connectap' style='position: absolute; bottom: .8em; right: .8em;' data-ssid='"+ssid+"''>Connect</label></div></div></footer></article></article>"
+		return "<article class='stack animated fadeInDown card'><header class='show'><div class='flex two'><div>"+ssid+"</div><div>"+rssi+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt :"+encryption_type+"<br>BSSI :"+bssid+"<br>Channel :"+channel+"<br>Hidden :"+hidden+"<br></div><div class='fifth'><label for='modal_1' class='button connectap' style='position: absolute; bottom: .8em; right: .8em;' data-ssid='"+ssid+"''>Connect</label></div></div></footer></article></article>"
 	};
 	var scan = function(){
 		console.log('scanning');
@@ -495,6 +518,7 @@
 	u('.changeap').on('click', function(){
 		console.log("changeap button clicked");
 		connect_to_ap(selected_network, u('.changeap').closest('article').find('input').nodes[0].value);
+		u('#toggle_load').trigger('click');
 	});
 	u('.locate').on('click',function(){
 		display_location();
