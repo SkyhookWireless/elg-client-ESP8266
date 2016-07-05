@@ -1,5 +1,5 @@
 /************************************************
-* Authors: Alexander Lin
+* Authors: Alexander Lin, Istvan Sleder, and Marwan Kallal
 * 
 * Company: Skyhook Wireless
 *
