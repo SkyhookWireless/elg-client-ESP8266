@@ -4,9 +4,6 @@
 * Company: Skyhook Wireless
 *
 ************************************************/
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_FeatherOLED.h>
 #include <Adafruit_FeatherOLED_WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266WiFi.h>
@@ -133,6 +130,9 @@ void handleNotFound();
 
 // handles a single location request in AP mode, returns info via json
 void handleLocation();
+
+void print_saved_networks();
+void print_saved_preferences();
 
 
 /* Set these to your desired credentials. */
@@ -330,7 +330,7 @@ class deviceInfo{
   }
 
   void change_state(){
-    oled.clearDisplay();
+    oled.clearMsgArea();
     esp_state = !esp_state;
     if(esp_state == AP){
       //print_to_oled("AP", "");
@@ -340,6 +340,7 @@ class deviceInfo{
     else{
       //print_to_oled("Client", "");
       oled.setConnected(CLIENT);
+      update_oled();
       //device.update_oled();
     }
   }
@@ -353,7 +354,6 @@ deviceInfo device;
 
 class Button{
   unsigned long previousMillis;
-  unsigned long debounce;
   void (*callback)();
   int pin;
 
@@ -364,14 +364,13 @@ class Button{
       pin = pin_number;
       pinMode(pin,INPUT_PULLUP);
       previousMillis = 0;
-      debounce = 150;
       callback = func;
     }
 
   // detects button presses
   bool update(){
     unsigned long now = millis();
-    if(now - previousMillis > debounce && digitalRead(pin)==LOW){
+    if(now - previousMillis > BUTTON_DEBOUNCE && digitalRead(pin)==LOW){
       callback(); 
       previousMillis = now;
       return true;
@@ -556,12 +555,11 @@ class ClientWiFiWrapper{
     Serial.println("waiting");
 
     int n = client.available();
-    while(n = client.available())
-    {
-      Serial.println("data present");
-
+    while(n = client.available()){
       // check for button interrupt
       if(state.update()) return false;
+    
+      Serial.println("data present");
       
       // trim to buff size
       if (n > sizeof(buff)){
@@ -906,6 +904,9 @@ void setup() {
   device.handle();
   print_to_oled("Connecting to APs","");
 
+  print_saved_networks();
+  print_saved_preferences();
+  
   // tell device to connect to saved AP's in AP.json
   client_req.conn_known_ap();
   
@@ -1137,7 +1138,7 @@ void handleChangeAP() {
     Serial.println("Password: " + server.arg("password"));
     server.sendHeader("Refresh", "10; url=/");
     // TODO: handle error
-    server.send(200, "text/html", "<head></head><h1>Attemping to connect to SSID " + server.arg("ssid") + ". AP will now shut down" + "</h1>");
+    server.send(200);
   }
   else{
     server.send(400);
@@ -1208,57 +1209,56 @@ void handleChangePreferences(){
   String preferences;
   if (server.hasArg("HPE") && server.hasArg("reverse_geo") && server.hasArg("scan_freq")) {
     String HPE_user = server.arg("HPE");
-    if (file_to_string("/resources/preferences.json","r",preferences)) {
-      Serial.println("before");
-      Serial.println(preferences);
-      //a.seek(0,SeekSet);
-      
-      DynamicJsonBuffer pref_obj_buf;
-      JsonObject& pref_obj = pref_obj_buf.parseObject(preferences);
-      pref_obj["HPE"] = string_to_bool(server.arg("HPE"));
-      pref_obj["reverse_geo"] = string_to_bool(server.arg("reverse_geo"));
-      int scan_freq_input = server.arg("scan_freq").toInt();
-      if(scan_freq_input < 200){
-        scan_freq_input = SCAN_DEFAULT_FRQ;
-      }
-      pref_obj["scan_freq"] = scan_freq_input;
-
-      if (!SPIFFS.exists("/resources/preferencesTmp.json")) {
-        SPIFFS.remove("/resources/preferencesTmp.json");
-      }
-    
-      File b = SPIFFS.open("/resources/preferencesTmp.json", "w");
-      // ERROR: file couldn't be open or created
-      if (!b) {
-        server.send(500);
-        return;
-      }
-      // write to file
-      pref_obj.printTo(b);
-      b.close();
-
-      Serial.println("after");
-      pref_obj.printTo(Serial);
-      
-      // delete the old AP list and update the new one to have the same name
-      SPIFFS.remove("/resources/preferences.json");
-      SPIFFS.rename("/resources/preferencesTmp.json", "/resources/preferences.json");
-    
-      // double checks that the JSON exists
-      if (SPIFFS.exists("/resources/preferences.json")) {
-        server.sendHeader("Refresh", "1; url=/");
-        server.send(200, "application/json", "{\"error\":\"none\"}");
-      }
-      else {
-        server.send(500);
-      }
+    if (!file_to_string("/resources/preferences.json","r",preferences)) {
+      preferences = "{}";
     }
-    else{
-      Serial.println("uhh no config file");
-      server.send(500, "application/json", "{\"error\":\"config file not found\"}");
+    Serial.println("before");
+    Serial.println(preferences);
+    //a.seek(0,SeekSet);
+    
+    DynamicJsonBuffer pref_obj_buf;
+    JsonObject& pref_obj = pref_obj_buf.parseObject(preferences);
+    pref_obj["HPE"] = string_to_bool(server.arg("HPE"));
+    pref_obj["reverse_geo"] = string_to_bool(server.arg("reverse_geo"));
+    int scan_freq_input = server.arg("scan_freq").toInt();
+    if(scan_freq_input < 200){
+      scan_freq_input = SCAN_DEFAULT_FRQ;
+    }
+    pref_obj["scan_freq"] = scan_freq_input;
+
+    if (!SPIFFS.exists("/resources/preferencesTmp.json")) {
+      SPIFFS.remove("/resources/preferencesTmp.json");
+    }
+  
+    File b = SPIFFS.open("/resources/preferencesTmp.json", "w");
+    // ERROR: file couldn't be open or created
+    if (!b) {
+      server.send(500);
+      return;
+    }
+    // write to file
+    pref_obj.printTo(b);
+    b.close();
+
+    Serial.println("after");
+    pref_obj.printTo(Serial);
+    
+    // delete the old AP list and update the new one to have the same name
+    SPIFFS.remove("/resources/preferences.json");
+    SPIFFS.rename("/resources/preferencesTmp.json", "/resources/preferences.json");
+  
+    // double checks that the JSON exists
+    if (SPIFFS.exists("/resources/preferences.json")) {
+      Serial.println("Preferences Sucessfully Changed");
+      load_config();
+      server.send(200);
+    }
+    else {
+      server.send(500);
     }
   }
   else{
+    server.send(500);
     Serial.println("incomplete request");
   }
 }

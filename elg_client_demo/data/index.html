@@ -524,6 +524,7 @@
 		display_location();
 	});
 	u('#pref').on('click',function(){
+		u('#toggle_load').trigger('click');
 		var scan_freq_input = 2000;
 		var HPE_input = false;
 		var reverse_geo_input = false;
@@ -540,7 +541,7 @@
 		var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input}};
 		var after = function(err, data){
 			console.log('prferences changed!')
-			//TODO reflect changes here
+			location.reload(true);
 		}
 		var before = function(xhr){
 			console.log(HPE_input);

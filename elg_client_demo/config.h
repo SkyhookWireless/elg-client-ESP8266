@@ -33,7 +33,7 @@ const char *AP_SSID = "Skyhook ELG";
 #define AP              1
 #define CLIENT          0
 
-#define BUTTON_DEBOUNCE 50000 // us
+#define BUTTON_DEBOUNCE 200 // ms
 #define MODE_SWITCH_TIME 500000 // us
 
 // uart baud rate
