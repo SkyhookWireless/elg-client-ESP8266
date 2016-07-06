@@ -249,7 +249,7 @@ class APWiFiWrapper {
       bssid_obj.prettyPrintTo(Serial);
     
       //if # of bssids > 5 then remove the oldest (top of the stack)
-      while(bssid_obj.size() > 5){
+      while(bssid_obj.size() > MAX_AUTOJOIN_APS){
         JsonObject::iterator it=bssid_obj.begin();
         bssid_obj.remove(it->key);
       }
