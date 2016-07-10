@@ -33,15 +33,16 @@ const char *AP_SSID = "Skyhook ELG";
 #define AP              1
 #define CLIENT          0
 
-#define BUTTON_DEBOUNCE 200 // ms
+#define BUTTON_DEBOUNCE 150 // ms
 #define MODE_SWITCH_TIME 500000 // us
 
 // uart baud rate
 #define SERIAL_BAUD_RATE 115200
 
-#define MAX_CHECK_TIMES 30
 #define SCAN_DEFAULT_FRQ 2000 // ms
 #define DEVICE_UPDATE_RATE 1000
 #define MAX_AUTOJOIN_APS 5
+#define INITIAL_STARTUP_STATE 0
+
 // micro OLED sparkfun
 // #define OLED_RESET

@@ -246,7 +246,12 @@
 
     <div>
     <br>
-    	<a class="special button" style>Scan for Networks</a>
+    		<div style="text-align:center">
+					<label id="verbose" class="switch">
+					  <input for="reverse_geo" class="toggle" type="checkbox">
+					  <div class="slider"></div>
+					</label>
+				</div>
 	      <div class="sk-wave hidden" for="network">
 	        <div class="sk-rect sk-rect1"></div>
 	        <div class="sk-rect sk-rect2"></div>
@@ -354,21 +359,53 @@
 <label for='modal_2' id='toggle_load' class="hidden">
 <script>
 	var selected_network = "";
-	var getWifiDisplayTemplate = function(ssid, bssid, rssi, encryption_type, channel, hidden){
-		return "<article class='stack animated fadeInDown card'><header class='show'><div class='flex two'><div>"+ssid+"</div><div>"+rssi+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt :"+encryption_type+"<br>BSSI :"+bssid+"<br>Channel :"+channel+"<br>Hidden :"+hidden+"<br></div><div class='fifth'><label for='modal_1' class='button connectap' style='position: absolute; bottom: .8em; right: .8em;' data-ssid='"+ssid+"''>Connect</label></div></div></footer></article></article>"
+	var network_scan_info = null;
+	var getWifiDisplayTemplate = function(ssid, ssid_item){
+			best_bssid = null;
+		Object.keys(ssid_item).forEach(function(key){
+			if(best_bssid == null){
+				best_bssid = ssid_item[key]
+				best_bssid['bssid'] = key;
+			}
+			else{
+				if(ssid_item[key]["rssi"] > best_bssid["rssi"]){
+					best_bssid = ssid_item[key];
+					best_bssid['bssid'] = key;
+				}
+			}
+		});
+		return "<article class='stack animated fadeInLeft card'><header class='show'><div class='flex two'><div class='ssid' data-ssid>"+ssid+"</div><div>"+best_bssid['rssi']+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt : "+best_bssid['encrypt']+"<br>Channel : "+best_bssid['channel']+"<br>Hidden : "+best_bssid['hidden']+"<br>BSSI : "+best_bssid['bssid']+"</div><div class='fifth'><label for='modal_1' class='button connectap' data-ssid='"+ssid+"'style='position: absolute; bottom: .8em; right: .8em;'>Connect</label></div></div></footer></article></article>"
 	};
+	var show_network_list = function(data){
+				Object.keys(data).forEach(function(ssid_key) {
+	    	var ssid_item = data[ssid_key];
+	    	console.log(ssid_item)
+	    	u('.aps').append(getWifiDisplayTemplate(ssid_key, ssid_item));
+	    	reset();
+    });
+	}
+	var show_verbose_network_list = function(data){
+		var body = "";
+		Object.keys(network_scan_info).forEach(function(ssid_key) {
+    	Object.keys(network_scan_info[ssid_key]).forEach(function(bssid_key){
+    		var id_info = network_scan_info[ssid_key][bssid_key];
+    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['encrypt']+'</td><td>'+id_info['hidden']+'</td></tr>'
+    	});
+  	});
+  	u('.aps').html('<div><table class="animated fadeInLeft"><thead><tr><th>BSSID</th><th>SSID</th><th>Channel</th><th>Encrypt</th><th>Hidden</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+	}
 	var scan = function(){
 		console.log('scanning');
+		network_scan_info = null;
   	var action = 'skyhookclient/scan';
 		var after = function(err, data){
+			network_scan_info = data;
 			console.log("attempting to remove class")
-			Object.keys(data).forEach(function(key) {
-		    	var network_item = data[key];
-		    	// console.log(getWifiDisplayTemplate(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
-		    	u('.aps').append(getWifiDisplayTemplate(key,network_item["bssid"], network_item["rssi"], network_item["encrypt"], network_item["channel"], network_item["hidden"]));
-			});
+			show_network_list(network_scan_info);
 			u('.sk-wave[for=network]').addClass('hidden');
-			reset();
+			Object.keys(data).forEach(function(key){
+				u('.ssid').closest('article').find()
+			});
 		}
 		var before = function(xhr){
 			xhr.responseType = 'json';
@@ -491,11 +528,6 @@
 		};
 		ajax(action, {method:'GET'}, after, before);
 	};
- 	u('.special').on('click', function(e){
- 		console.log('button click');
-		u('.aps').children().remove();
- 		scan();
-	});
 	u('.pseudo, .button, .toggle').on('click',function(){
 		if(u(this).attr('for')=='tab-1'){
 			console.log('tab 1');
@@ -504,9 +536,15 @@
 			getCurrentNetwork();
 		}
 		else if(u(this).attr('for')=='tab-2'){
+			console.log("getting clicked")
 			if(u('.aps').children().length == 0){
 				console.log("tab-2 clicked")
 				console.log("initial scan")
+				scan();
+			}
+			else if(u('#tab-2').is(':checked')){
+				u('.aps').children().remove();
+				console.log('scanningkljljfalsd')
 				scan();
 			}
 		}
@@ -548,6 +586,19 @@
 			xhr.responseType = 'json';
 		};
 		ajax(action, options, after, before);
+	});
+	u('#verbose > input').on('click',function(){
+		if(u('#verbose > input').is(':checked')){
+			console.log('show verbose');
+			if(!u('.aps').children().length == 0 && network_scan_info != null){
+				u('.aps').children().remove();
+				show_verbose_network_list(network_scan_info);
+			}
+		}
+		else{
+			u('.aps').children().remove();
+			show_network_list(network_scan_info);
+		}
 	});
 	getCurrentNetwork();
 </script>

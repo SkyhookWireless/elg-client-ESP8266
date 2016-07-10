@@ -80,6 +80,13 @@ const char *str_status[] = {
   "WL_CONNECTION_LOST",
   "WL_DISCONNECTED"
 };
+
+// class declarations
+class Button;
+class APWiFiWrapper;
+class deviceInfo;
+class ClientWiFiWrapper;
+
 // reads preferences settings (preferences.json) and loads their values
 void load_config();
 
@@ -131,6 +138,8 @@ void handleNotFound();
 // handles a single location request in AP mode, returns info via json
 void handleLocation();
 
+void insert_bssid_info(JsonObject& info, int index);
+
 void print_saved_networks();
 void print_saved_preferences();
 
@@ -142,6 +151,34 @@ const char *password = "";
 ESP8266WebServer server(80);
 WiFiClient client;
 Adafruit_FeatherOLED_WiFi oled = Adafruit_FeatherOLED_WiFi();
+
+class Button{
+  unsigned long previousMillis;
+  void (*callback)();
+  int pin;
+
+  // initalizes given the pin on the featherboard that the button is attached to
+  public:
+    Button(int pin_number, void (*func)(), uint8_t type){
+      pin = pin_number;
+      pinMode(pin, type);
+      previousMillis = 0;
+      callback = func;
+    }
+
+  // detects button presses
+  bool update(){
+    unsigned long now = millis();
+    if(now - previousMillis > BUTTON_DEBOUNCE && digitalRead(pin)==LOW){
+      callback(); 
+      previousMillis = now;
+      return true;
+    }
+    return false;
+  }
+};
+
+Button state = Button(13, change_device_state, INPUT_PULLUP);
 
 // class for AP mode
 class APWiFiWrapper {
@@ -161,13 +198,27 @@ class APWiFiWrapper {
     }
 
     // attempts to connect to specified AP, run init_check_connection after
-    void connect_to(String ssid, String password) {
+    bool connect_to(String ssid, String password) {
       WiFi.disconnect();
       WiFi.begin(ssid.c_str(), password.c_str());
       // resets the check flag
       init_check_finish = false;
       previousMillis = 0;
       check_times = 0;
+
+      int status = WiFi.status();
+      while(status != WL_CONNECTED && status != WL_NO_SSID_AVAIL && status != WL_CONNECT_FAILED) {
+          if(state.update()){return false;}
+          yield();
+          delay(10);
+          status = WiFi.status();
+      }
+      if(status == WL_CONNECTED){
+        return true;
+      }
+      else{
+        return false;
+      }
     }
 
     // resets AP class and WiFi connection
@@ -189,69 +240,35 @@ class APWiFiWrapper {
       }
     }
 
-    // checks and regulates connection to a newly inputed AP
-    void init_check_connection(unsigned long interval) {
-      unsigned long currentMillis = millis();
-      if(!init_check_finish){
-        // if it is time to update and under number of times to check
-        if (currentMillis - previousMillis > interval && check_times < MAX_CHECK_TIMES) {
-          Serial.println("Checking Connection Status");
-          Serial.println(check_times);
-          // check if the WiFi is connected
-          int n = WiFi.status();
-          switch (n) {
-            case WL_NO_SSID_AVAIL:
-              init_check_finish = true;
-              break;
-            case WL_CONNECTED:
-              init_check_finish = true;
-              break;
-            case WL_CONNECT_FAILED:
-              init_check_finish = true;
-              break;
-            default:
-              check_times++;
-              break;
-          }
-          Serial.println(str_status[n]);
-  
-          // update the time
-          previousMillis = currentMillis;
-        }
-        else if(check_times >= MAX_CHECK_TIMES){
-          init_check_finish = true;
-        }
-      }
-    }
-
     bool save_connected_network(String password) {
       String APjson;
       String bssid = WiFi.BSSIDstr();
-      Serial.println(bssid);
+      String ssid = WiFi.SSID();
+      Serial.println(ssid);
       if (!file_to_string("/resources/AP.json", "r",APjson)) {
         APjson="{}";
       }
-    
-      DynamicJsonBuffer bssid_obj_buf;
-    
-      JsonObject& bssid_obj = bssid_obj_buf.parseObject(APjson);
+
+      // initialize JSON object
+      DynamicJsonBuffer ssid_obj_buf;
+      JsonObject& ssid_obj = ssid_obj_buf.parseObject(APjson);
     
       // if the BSSID already exists remove and readd (keep the stack style of BSSID storage)
-      if (bssid_obj[bssid] != "") {
-        bssid_obj.remove(bssid);
+      if (ssid_obj[ssid] != "") {
+        ssid_obj.remove(ssid);
       }
       
-      JsonObject& bssid_info = bssid_obj.createNestedObject(bssid);
-      bssid_info["ssid"] = WiFi.SSID();
-      bssid_info["pw"] = password;
+      JsonObject& ssid_info = ssid_obj.createNestedObject(ssid);
+      ssid_info["bssid"] = bssid;
+      ssid_info["pw"] = password;
     
       // DEBUGGING
-      bssid_obj.prettyPrintTo(Serial);
+      ssid_obj.prettyPrintTo(Serial);
     
-      //if # of bssids > 5 then remove the oldest (top of the stack)
-      while(bssid_obj.size() > MAX_AUTOJOIN_APS){
-        JsonObject::iterator it=bssid_obj.begin();
-        bssid_obj.remove(it->key);
+      //if # of bssids > MAX_AUTOJOIN_APS then remove the oldest (top of the stack)
+      while(ssid_obj.size() > MAX_AUTOJOIN_APS){
+        JsonObject::iterator it=ssid_obj.begin();
+        ssid_obj.remove(it->key);
       }
     
       // remove the tmp file check
@@ -265,7 +282,7 @@ class APWiFiWrapper {
         return false;
       }
       // write to file
-      bssid_obj.printTo(b);
+      ssid_obj.printTo(b);
       b.close();
     
       // delete the old AP list and update the new one to have the same name
@@ -303,11 +320,14 @@ class deviceInfo{
     deviceInfo(){
       now = millis();
       last_update = 0;
-      esp_state = CLIENT;
+      esp_state = INITIAL_STARTUP_STATE;
     }
 
   // updates OLED and device info every 
   void handle(){
+    if(state.update()){
+      return;
+    }
     now = millis();
     if(now - last_update > DEVICE_UPDATE_RATE){
       update_oled(); 
@@ -330,7 +350,7 @@ class deviceInfo{
   }
 
   void change_state(){
-    oled.clearMsgArea();
+    oled.clearDisplay();
     esp_state = !esp_state;
     if(esp_state == AP){
       //print_to_oled("AP", "");
@@ -351,35 +371,6 @@ class deviceInfo{
 };
 
 deviceInfo device;
-
-class Button{
-  unsigned long previousMillis;
-  void (*callback)();
-  int pin;
-
-  // initalizes given the pin on the featherboard that the button is attached to
-  // WARNING: the pin input must have an internal pullup in order for this class to work
-  public:
-    Button(int pin_number, void (*func)()){
-      pin = pin_number;
-      pinMode(pin,INPUT_PULLUP);
-      previousMillis = 0;
-      callback = func;
-    }
-
-  // detects button presses
-  bool update(){
-    unsigned long now = millis();
-    if(now - previousMillis > BUTTON_DEBOUNCE && digitalRead(pin)==LOW){
-      callback(); 
-      previousMillis = now;
-      return true;
-    }
-    return false;
-  }
-};
-
-Button state = Button(13, change_device_state);
 
 // used during setup when connecting to multiple saved networks from AP.json
 ESP8266WiFiMulti WiFiMulti;
@@ -421,48 +412,12 @@ class ClientWiFiWrapper{
 
     for (JsonObject::iterator it=bssid_obj.begin(); it!=bssid_obj.end(); ++it)
     {
-      String ssid = bssid_obj[it->key]["ssid"];
+      String ssid = it->key;
       String pw = bssid_obj[it->key]["pw"];
-      Serial.println("adding " + ssid + " " + pw);
+      // Serial.println("adding " + ssid);
       WiFiMulti.addAP(bssid_obj[it->key]["ssid"],bssid_obj[it->key]["pw"]);
     }
-    
-    unsigned long prev = 0;
-    while(!init_check_finish){
-      yield();
-      device.handle();
-      
-      // check button interrupt
-      if(state.update()) return;
-      
-      if(check_times < MAX_CHECK_TIMES){
-        now = millis();
-        if(now - prev > 500){
-          Serial.println(check_times);
-          int n = WiFiMulti.run();
-          switch (n) {
-            case WL_NO_SSID_AVAIL:
-              check_times++;
-              break;
-            case WL_CONNECTED:
-              // connected to some AP
-              init_check_finish = true;
-              break;
-            case WL_CONNECT_FAILED:
-              check_times++;
-              break;
-            default:
-              check_times++;
-              break;
-          }
-          Serial.println(str_status[n]);
-          prev = now;
-        }
-      }
-      else{
-        break;
-      }
-    }
+    //Serial.println(str_status[WiFiMulti.run()]);
   }
 
   // scans surrounding AP's and sends info to elg server
@@ -704,7 +659,7 @@ class ClientWiFiWrapper{
   
               if (z) Serial.print(":");
               Serial.print(ip[i], HEX);
-              Serial.print(ip[i+1, HEX]);
+              Serial.print(ip[i+1], HEX);
               Serial.print(":");
               z = 0;
           }
@@ -759,16 +714,8 @@ class ClientWiFiWrapper{
     else{
       oled.clearMsgArea();
       device.handle();
-      oled.refreshIcons();
       print_to_oled("Wifi Disconnected","");
-      yield();
     }
-    if(state.update()){
-      sent = false; 
-      check_time = 0;
-      return;
-    }
-    yield();
   }
 
   // function that will return a single location response in a form of a json
@@ -805,7 +752,7 @@ class ClientWiFiWrapper{
               return;
             }
             else{
-              Serial.println("No Repsonse, retyring");
+              Serial.println("No Repsonse, retrying");
               check_time++;
             }
             if(check_time >= 150){
@@ -836,15 +783,14 @@ void setup() {
 
   // Begin Serial output
   Serial.begin(115200);
+  yield();
   // Begin ESP8266 File management system
   SPIFFS.begin();
 
   // on startup set default scan_frq in case preferences.json doesn't include
   scan_frq = SCAN_DEFAULT_FRQ;
-  Serial.println("LOADING CONFIG");
   // preferences.json is loaded and boolean values are set
   load_config();
-  Serial.println("Currently On");
 
   // Initialized OLED
   oled.init();
@@ -872,7 +818,7 @@ void setup() {
   // station mode allows both client and AP mode
   WiFi.mode(WIFI_AP_STA);
   Serial.println();
-  Serial.print("Configuring access point...");
+  Serial.println("Configuring access point...");
   
   // set ssid and password
   WiFi.softAP(ssid, password);
@@ -897,20 +843,31 @@ void setup() {
   server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
 
   server.begin();
-  
-  Serial.println("HTTP server started");
-  Serial.println("Attempting to connect to know aps");
-  
-  device.handle();
-  print_to_oled("Connecting to APs","");
 
+  device.handle();
+
+  Serial.println("Saved Networks:");
   print_saved_networks();
+  Serial.println();
+  Serial.println("Saved Preferences:");
   print_saved_preferences();
+  Serial.println();
   
+  Serial.print("Attempting to connect to know aps...");
+  print_to_oled("Connecting to APs","");
   // tell device to connect to saved AP's in AP.json
   client_req.conn_known_ap();
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("Connected!");
+  }
+  else{
+    Serial.println("Unable to connect to known AP's");
+  }
   
   oled.clearDisplay();
+  
+  Serial.println("HTTP server started");
+  Serial.printf("Open http://192.168.4.1 in your browser\n");
 }
 
 void loop() {
@@ -940,10 +897,6 @@ void load_config(){
   scan_frq = config_obj["scan_freq"];
   HPE = config_obj["HPE"];
   reverse_geo = config_obj["reverse_geo"];
-
-  // Serial debugging
-  Serial.println("config json");
-  config_obj.printTo(Serial);
 }
 
 void change_device_state(){
@@ -984,7 +937,6 @@ bool file_to_string(String path, const char* type, String& ret_buf){
         ret_buf += (char)a.read();
       }
       a.close();
-      Serial.println(ret_buf);
       return true;
   }
   return false;
@@ -1099,7 +1051,7 @@ void handleResources() {
   File dataFile = SPIFFS.open(path.c_str(), "r");
   if(!dataFile){
     Serial.println(path+" not found!");
-    server.send(404);
+    server.send(404, "text/html", "<head></head><h1>404 Not Found</h1>");
   }
   if (server.hasArg("download")) dataType = "application/octet-stream";
   if (server.streamFile(dataFile, dataType) != dataFile.size()) {
@@ -1116,19 +1068,36 @@ void handleScan() {
   JsonObject& scan_obj = scan_obj_buf.createObject();
 
   for (int i = 0; i < n; i++) {
+    
     // handle button interrupt
     if(state.update()) return;
-    
-    DynamicJsonBuffer scan_info_buf;
-    JsonObject& scan_info = scan_obj.createNestedObject(WiFi.SSID(i));
-    scan_info["bssid"] = WiFi.BSSIDstr(i);
-    scan_info["channel"] = WiFi.channel(i);
-    scan_info["rssi"] = WiFi.RSSI(i);
-    scan_info["encrypt"] = encryptionTypeStr(WiFi.encryptionType(i));
-    scan_info["hidden"] = WiFi.isHidden(i);
+    if(!scan_obj[WiFi.SSID(i)].success()){
+      DynamicJsonBuffer scan_info_buf;
+      
+      JsonObject& scan_info = scan_obj.createNestedObject(WiFi.SSID(i));
+      JsonObject& id_info = scan_info.createNestedObject(WiFi.BSSIDstr(i));
+  
+      insert_bssid_info(id_info,i);
+    }
+    else{
+      JsonObject& thing = scan_obj[WiFi.SSID(i)];
+      JsonObject& id_info = thing.createNestedObject(WiFi.BSSIDstr(i));
+  
+      insert_bssid_info(id_info,i);
+    }
   }
+  scan_obj.prettyPrintTo(Serial);
   main_wifi.send_json_response(scan_obj);
+  WiFi.scanDelete();
   oled.clearMsgArea();
+}
+
+void insert_bssid_info(JsonObject& info, int index){
+  info["rssi"] = WiFi.RSSI(index);
+  info["channel"] = WiFi.channel(index);
+  info["rssi"] = WiFi.RSSI(index);
+  info["encrypt"] = encryptionTypeStr(WiFi.encryptionType(index));
+  info["hidden"] = WiFi.isHidden(index);
 }
 
 void handleChangeAP() {
@@ -1147,30 +1116,17 @@ void handleChangeAP() {
 
   print_to_oled("Connecting to: " + server.arg("ssid"), "");
 
-  //WIFI.begin() will move the AP channel
-  main_wifi.connect_to(server.arg("ssid"), server.arg("password"));
-  Serial.println("Current connection status: " + String(main_wifi.get_init_check_finish()));
-
-  // Checks 
-  while (!(main_wifi.get_init_check_finish())) {
-    main_wifi.init_check_connection(500);
-    if(state.update()) return;
-    yield();
-  }
-
-  Serial.println("Finished Checking for Wifi Connection");
-  if (main_wifi.check_connection()) {
+  // If connection successful
+  if(main_wifi.connect_to(server.arg("ssid"), server.arg("password"))){
     Serial.println("Connected to WiFi");
-    print_to_oled("Connected To: "+  WiFi.SSID(), "");
-
     if (!main_wifi.save_connected_network(server.arg("password"))) {
       Serial.println("Couldn't save AP to database");
       print_to_oled("Failed to save AP Info","");
     }
   }
-  else {
-    Serial.println("Failed to Connect");
-    print_to_oled("Failed to Connect", "");
+  else{
+    Serial.println("Failed to Connect to AP");
+    return;
   }
 }
 
@@ -1214,7 +1170,6 @@ void handleChangePreferences(){
     }
     Serial.println("before");
     Serial.println(preferences);
-    //a.seek(0,SeekSet);
     
     DynamicJsonBuffer pref_obj_buf;
     JsonObject& pref_obj = pref_obj_buf.parseObject(preferences);
@@ -1233,7 +1188,7 @@ void handleChangePreferences(){
     File b = SPIFFS.open("/resources/preferencesTmp.json", "w");
     // ERROR: file couldn't be open or created
     if (!b) {
-      server.send(500);
+      server.send(500,"application/json","{\"error\":\"No Preferences Json\"}");
       return;
     }
     // write to file
@@ -1254,11 +1209,11 @@ void handleChangePreferences(){
       server.send(200);
     }
     else {
-      server.send(500);
+      server.send(500,"application/json","{\"error\":\"No preferences Json after rename\"}");
     }
   }
   else{
-    server.send(500);
+    server.send(500,"application/json","{\"error\":\"Incomplete Request\"}");
     Serial.println("incomplete request");
   }
 }
@@ -1291,6 +1246,7 @@ void print_saved_networks() {
   DynamicJsonBuffer bssid_obj_buf;
   JsonObject& bssid_obj = bssid_obj_buf.parseObject(APjson);
   bssid_obj.prettyPrintTo(Serial);
+  Serial.println();
 }
 
 // DEBUGGING
@@ -1302,5 +1258,6 @@ void print_saved_preferences(){
   DynamicJsonBuffer bssid_obj_buf;
   JsonObject& bssid_obj = bssid_obj_buf.parseObject(pref);
   bssid_obj.prettyPrintTo(Serial);
+  Serial.println();
 }
 
