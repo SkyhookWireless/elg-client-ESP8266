@@ -39,10 +39,17 @@ const char *AP_SSID = "Skyhook ELG";
 // uart baud rate
 #define SERIAL_BAUD_RATE 115200
 
+// intially defines scan frequency initally in case config.json isn't loaded
 #define SCAN_DEFAULT_FRQ 2000 // ms
+
+// defines how frequently the device refreshes voltage readings, rssi readings, etc
 #define DEVICE_UPDATE_RATE 1000
+
+// max number of successfully connected AP's that are saved into AP.json
 #define MAX_AUTOJOIN_APS 5
-#define INITIAL_STARTUP_STATE 0
+
+// defines the inital state on startup
+#define INITIAL_STARTUP_STATE AP
 
 // micro OLED sparkfun
 // #define OLED_RESET
