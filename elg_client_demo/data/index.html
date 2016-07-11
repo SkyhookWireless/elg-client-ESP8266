@@ -374,7 +374,7 @@
 				}
 			}
 		});
-		return "<article class='stack animated fadeInLeft card'><header class='show'><div class='flex two'><div class='ssid' data-ssid>"+ssid+"</div><div>"+best_bssid['rssi']+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt : "+best_bssid['encrypt']+"<br>Channel : "+best_bssid['channel']+"<br>Hidden : "+best_bssid['hidden']+"<br>BSSI : "+best_bssid['bssid']+"</div><div class='fifth'><label for='modal_1' class='button connectap' data-ssid='"+ssid+"'style='position: absolute; bottom: .8em; right: .8em;'>Connect</label></div></div></footer></article></article>"
+		return "<article class='stack animated fadeInRight card'><header class='show'><div class='flex two'><div class='ssid' data-ssid>"+ssid+"</div><div>"+best_bssid['rssi']+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt : "+best_bssid['encrypt']+"<br>Channel : "+best_bssid['channel']+"<br>Hidden : "+best_bssid['hidden']+"<br>BSSI : "+best_bssid['bssid']+"</div><div class='fifth'><label for='modal_1' class='button connectap' data-ssid='"+ssid+"'style='position: absolute; bottom: .8em; right: .8em;'>Connect</label></div></div></footer></article></article>"
 	};
 	var show_network_list = function(data){
 				Object.keys(data).forEach(function(ssid_key) {
@@ -389,10 +389,10 @@
 		Object.keys(network_scan_info).forEach(function(ssid_key) {
     	Object.keys(network_scan_info[ssid_key]).forEach(function(bssid_key){
     		var id_info = network_scan_info[ssid_key][bssid_key];
-    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['encrypt']+'</td><td>'+id_info['hidden']+'</td></tr>'
+    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['hidden']+'</td></tr>'
     	});
   	});
-  	u('.aps').html('<div><table class="animated fadeInLeft"><thead><tr><th>BSSID</th><th>SSID</th><th>Channel</th><th>Encrypt</th><th>Hidden</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+  	u('.aps').html('<div><table class="animated fadeInLeft"><thead><tr><th>BSSID</th><th>SSID</th><th>Channel</th><th>Encrypt</th><th>RSSI</th></tr></thead><tbody>'+body+'</tbody></table></div>');
 	}
 	var scan = function(){
 		console.log('scanning');
