@@ -859,12 +859,12 @@ void setup() {
   client_req.conn_known_ap();
   if(WiFi.status() == WL_CONNECTED){
     Serial.println("Connected!");
+    print_to_oled("Success: " + WiFi.SSID(),"");
   }
   else{
     Serial.println("Unable to connect to known AP's");
+    print_to_oled("Unable to connect to know AP's","");
   }
-  
-  oled.clearDisplay();
   
   Serial.println("HTTP server started");
   Serial.printf("Open http://192.168.4.1 in your browser\n");
@@ -881,6 +881,7 @@ void loop() {
   }
   // Serial.println(esp_state);
   state.update();
+  oled.setConnected(INITIAL_STARTUP_STATE);
   yield();
 }
 
