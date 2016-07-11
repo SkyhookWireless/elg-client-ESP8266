@@ -156,11 +156,18 @@ class Button{
   unsigned long previousMillis;
   void (*callback)();
   int pin;
+  int reading;
 
   // initalizes given the pin on the featherboard that the button is attached to
   public:
     Button(int pin_number, void (*func)(), uint8_t type){
       pin = pin_number;
+      if(type == INPUT_PULLUP){
+        reading = LOW;
+      }
+      else{
+        reading = HIGH;
+      }
       pinMode(pin, type);
       previousMillis = 0;
       callback = func;
@@ -169,7 +176,7 @@ class Button{
   // detects button presses
   bool update(){
     unsigned long now = millis();
-    if(now - previousMillis > BUTTON_DEBOUNCE && digitalRead(pin)==LOW){
+    if(now - previousMillis > BUTTON_DEBOUNCE && digitalRead(pin)==reading){
       callback(); 
       previousMillis = now;
       return true;
@@ -178,7 +185,7 @@ class Button{
   }
 };
 
-Button state = Button(13, change_device_state, INPUT_PULLUP);
+Button state = Button(0, change_device_state, INPUT_PULLUP);
 
 // class for AP mode
 class APWiFiWrapper {
@@ -863,7 +870,7 @@ void setup() {
   }
   else{
     Serial.println("Unable to connect to known AP's");
-    print_to_oled("Unable to connect to know AP's","");
+    print_to_oled("Unable to connect to known AP's","");
   }
   
   Serial.println("HTTP server started");
@@ -1126,6 +1133,7 @@ void handleChangeAP() {
   }
   else{
     Serial.println("Failed to Connect to AP");
+    print_to_oled("Couldn't connect to AP","");
     return;
   }
 }
