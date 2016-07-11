@@ -791,7 +791,6 @@ void setup() {
   scan_frq = SCAN_DEFAULT_FRQ;
   // preferences.json is loaded and boolean values are set
   load_config();
-
   // Initialized OLED
   oled.init();
   oled.clearDisplay();
@@ -809,7 +808,8 @@ void setup() {
     yield();
     now = millis();
   }
-
+  oled.setConnected(INITIAL_STARTUP_STATE);
+  oled.refreshIcons();
   // crashes without this, unsure why
   yield();
 
@@ -881,7 +881,6 @@ void loop() {
   }
   // Serial.println(esp_state);
   state.update();
-  oled.setConnected(INITIAL_STARTUP_STATE);
   yield();
 }
 
