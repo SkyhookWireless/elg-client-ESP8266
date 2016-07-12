@@ -140,6 +140,8 @@ void handleLocation();
 
 void insert_bssid_info(JsonObject& info, int index);
 
+bool get_error(String& error);
+
 void print_saved_networks();
 void print_saved_preferences();
 
@@ -728,6 +730,7 @@ class ClientWiFiWrapper{
 
   // function that will return a single location response in a form of a json
   void location_json(){
+    String error = "";
     while(true){
       unsigned long now = millis();
       if(WiFi.status() == WL_CONNECTED){
@@ -742,6 +745,11 @@ class ClientWiFiWrapper{
           if(now - rxTimer > WIFI_RX_WAIT_TIME && check_time < 150){
             Serial.println("waiting");
             if(rx()){
+              if(get_error(error)){
+                Serial.println(error);
+                server.send(200,"application/json","{\"error\": \""+error+"\"}");
+                print_to_oled(error,"");
+              }
               rxTimer = now;
               check_time = 0;
               char buf[10];
@@ -766,14 +774,14 @@ class ClientWiFiWrapper{
             if(check_time >= 150){
               check_time = 0;
               sent = false;
-              server.send(500,"application/json","{\"error\":\"No Response From ELG Server\"}");
+              server.send(200,"application/json","{\"error\":\"No Response From ELG Server\"}");
               return;
             }
           }
         }
       }
       else{
-        server.send(500,"application/json","{\"error\":\"WiFi Disconnected\"}");
+        server.send(200,"application/json","{\"error\":\"WiFi Disconnected\"}");
       }
       yield();
     }
@@ -816,6 +824,7 @@ void setup() {
     yield();
     now = millis();
   }
+  oled.clearDisplay();
   oled.setConnected(INITIAL_STARTUP_STATE);
   oled.refreshIcons();
   // crashes without this, unsure why
@@ -827,7 +836,7 @@ void setup() {
   WiFi.mode(WIFI_AP_STA);
   Serial.println();
   Serial.println("Configuring access point...");
-  
+  yield();
   // set ssid and password
   WiFi.softAP(ssid, password);
   WiFi.softAPmacAddress(mac);
@@ -976,37 +985,52 @@ void print_location_oled(){
   //Serial.println(page1_display_timer);
   while(true){
     unsigned long now = millis();
+    String error = "";
     if(!page1_done){
-      oled.clearDisplay();
-      oled.setCursor(0,0);
-      oled.println("INFO:");
-      oled.println("LAT: " + String(resp.location.lat, 5));
-      oled.println("LON: " + String(resp.location.lon, 5));
-      if(HPE){
-        oled.println("HPE: " + String(resp.location.hpe, 5));
+      if (get_error(error)){
+        oled.clearDisplay();
+        oled.setCursor(0,8);
+        oled.println(error);
+      }
+      else{
+        oled.clearDisplay();
+        oled.setCursor(0,0);
+        oled.println("INFO:");
+        oled.println("LAT: " + String(resp.location.lat, 5));
+        oled.println("LON: " + String(resp.location.lon, 5));
+        if(HPE){
+          oled.println("HPE: " + String(resp.location.hpe, 5));
+        }
       }
       oled.display();
       page1_done = true;
     }
     if(now - start_time > page1_display_timer && !page2_done){
-      oled.clearDisplay();
-      oled.setCursor(0,0);
-      oled.println("ADDRESS:");
-      char buff[10];
-      snprintf(buff, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
-      oled.print(buff);
-      oled.write(' ');
-      snprintf(buff, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
-      oled.print(buff);
-      oled.write(' ');
-      snprintf(buff, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
-      oled.print(buff);
-      oled.write(' ');
-      snprintf(buff, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
-      oled.print(buff);
-      oled.write(' ');
-      snprintf(buff, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
-      oled.println(buff);
+      if(resp.payload_type == LOCATION_RQ_ADDR){
+        oled.clearDisplay();
+        oled.setCursor(0,0);
+        oled.println("ADDRESS:");
+        char buff[10];
+        snprintf(buff, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
+        oled.print(buff);
+        oled.write(' ');
+        snprintf(buff, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
+        oled.print(buff);
+        oled.write(' ');
+        snprintf(buff, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
+        oled.print(buff);
+        oled.write(' ');
+        snprintf(buff, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
+        oled.print(buff);
+        oled.write(' ');
+        snprintf(buff, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
+        oled.println(buff);
+      }
+      else{
+        oled.clearDisplay();
+        oled.setCursor(0,8);
+        oled.println("ERROR");
+      }
       oled.display();
       page2_done = true;
     }
@@ -1017,6 +1041,34 @@ void print_location_oled(){
     if(state.update()) return;
     yield();
   }
+}
+
+bool get_error(String& error){
+  if (resp.payload_type != LOCATION_RQ && resp.payload_type != LOCATION_RQ_ADDR){
+      switch (resp.payload_type)
+      {
+          case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
+          case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
+          case SERVER_ERROR: error = "SERVER_ERROR"; break;
+          case LOCATION_RQ_ERROR: error = "LOCATION_RQ_ERROR"; break;
+          case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
+          case PROBE_REQUEST: error = "PROBE_REQUEST"; break;
+          case DECODE_BIN_FAILED: error = "DECODE_BIN_FAILED"; break;
+          case ENCODE_BIN_FAILED: error = "ENCODE_BIN_FAILED"; break;
+          case DECRYPT_BIN_FAILED: error = "DECRYPT_BIN_FAILED"; break;
+          case ENCRYPT_BIN_FAILED: error = "ENCRYPT_BIN_FAILED"; break;
+          case ENCODE_XML_FAILED: error = "ENCODE_XML_FAILED"; break;
+          case DECODE_XML_FAILED: error = "DECODE_XML_FAILED"; break;
+          case SOCKET_FAILED: error = "SOCKET_FAILED "; break;
+          case SOCKET_WRITE_FAILED: error = "SOCKET_WRITE_FAILED"; break;
+          case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
+          case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;
+          case CREATE_META_FAILED: error = "CREATE_META_FAILED"; break;
+          case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
+      }
+      return true;
+  }
+    return false;
 }
 
 void handleRoot() {
@@ -1201,7 +1253,7 @@ void handleChangePreferences(){
     File b = SPIFFS.open("/resources/preferencesTmp.json", "w");
     // ERROR: file couldn't be open or created
     if (!b) {
-      server.send(500,"application/json","{\"error\":\"No Preferences Json\"}");
+      server.send(200,"application/json","{\"error\":\"No Preferences Json\"}");
       return;
     }
     // write to file
@@ -1222,11 +1274,11 @@ void handleChangePreferences(){
       server.send(200);
     }
     else {
-      server.send(500,"application/json","{\"error\":\"No preferences Json after rename\"}");
+      server.send(200,"application/json","{\"error\":\"No preferences Json after rename\"}");
     }
   }
   else{
-    server.send(500,"application/json","{\"error\":\"Incomplete Request\"}");
+    server.send(200,"application/json","{\"error\":\"Incomplete Request\"}");
     Serial.println("incomplete request");
   }
 }

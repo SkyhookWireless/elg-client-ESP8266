@@ -514,10 +514,10 @@
 				u('#LAT').html(data['LAT']);
 				u('#LON').html(data['LON']);
 				u('#reverse_geo').html(data['reverse_geo']);
-				u('.sk-wave[for=location]').addClass('hidden');
 				u('.locationInfo').removeClass('hidden');
 				u('.locationInfo').addClass('animated fadeIn')
 			}
+			u('.sk-wave[for=location]').addClass('hidden');
 		};
 		var before = function(xhr){
 			xhr.responseType = 'json';
