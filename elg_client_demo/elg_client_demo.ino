@@ -748,7 +748,7 @@ class ClientWiFiWrapper{
               if(get_error(error)){
                 Serial.println(error);
                 server.send(200,"application/json","{\"error\": \""+error+"\"}");
-                print_to_oled(error,"");
+                print_to_oled("Location error",error);
               }
               rxTimer = now;
               check_time = 0;
