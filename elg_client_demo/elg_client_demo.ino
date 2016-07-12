@@ -361,6 +361,7 @@ class deviceInfo{
     esp_state = !esp_state;
     if(esp_state == AP){
       //print_to_oled("AP", "");
+      print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
       oled.setConnected(AP);
       update_oled();
     }
@@ -874,7 +875,11 @@ void setup() {
   }
   
   Serial.println("HTTP server started");
-  Serial.printf("Open http://192.168.4.1 in your browser\n");
+  Serial.println("Open "+ myIP.toString()+" in your browser\n");
+
+  if(device.getDeviceState() == AP){
+    print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
+  }
 }
 
 void loop() {
