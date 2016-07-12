@@ -836,11 +836,10 @@ void setup() {
   WiFi.mode(WIFI_AP_STA);
   Serial.println();
   Serial.println("Configuring access point...");
-  yield();
+  
   // set ssid and password
   WiFi.softAP(ssid, password);
   WiFi.softAPmacAddress(mac);
-  IPAddress myIP = WiFi.softAPIP();
 
   // handles API like calls to the device
   server.on("/", handleRoot);
@@ -884,7 +883,7 @@ void setup() {
   }
   
   Serial.println("HTTP server started");
-  Serial.println("Open "+ myIP.toString()+" in your browser\n");
+  Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
 
   if(device.getDeviceState() == AP){
     print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
