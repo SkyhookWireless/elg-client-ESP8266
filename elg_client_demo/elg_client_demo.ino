@@ -14,9 +14,9 @@
 #include "FS.h"
 #include <ArduinoJson.h>
 #include <EEPROM.h>
-#include "ELG-Client2/inc/sky_types.h"
-#include "ELG-Client2/inc/sky_protocol_client_1.h"
-#include "ELG-Client2/inc/sky_crypt.h"
+#include "sky_types.h"
+#include "sky_protocol_client_1.h"
+#include "sky_crypt.h"
 #include "config.h"
 
 //startup logo
