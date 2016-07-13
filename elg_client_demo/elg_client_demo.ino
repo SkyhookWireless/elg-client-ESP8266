@@ -1288,15 +1288,15 @@ void handleChangePreferences(){
     b.close();
 
     Serial.println("after");
-    pref_obj.printTo(Serial);
-    
+    pref_obj.prettyPrintTo(Serial);
+    Serial.println();
     // delete the old AP list and update the new one to have the same name
     SPIFFS.remove("/resources/preferences.json");
     SPIFFS.rename("/resources/preferencesTmp.json", "/resources/preferences.json");
   
     // double checks that the JSON exists
     if (SPIFFS.exists("/resources/preferences.json")) {
-      Serial.println("Preferences Sucessfully Changed");
+      Serial.println("Preferences Change Successful");
       load_config();
       server.send(200);
     }
