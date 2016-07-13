@@ -141,6 +141,7 @@ void handleLocation();
 void insert_bssid_info(JsonObject& info, int index);
 
 bool get_error(String& error);
+int get_max(int buf[], int len);
 
 void print_saved_networks();
 void print_saved_preferences();
@@ -752,18 +753,23 @@ class ClientWiFiWrapper{
               }
               rxTimer = now;
               check_time = 0;
-              char buf[10];
-              String address = "\"";
-              snprintf(buf, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
-              address += String(buf) + " ";
-              snprintf(buf, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
-              address += String(buf) + " ";
-              snprintf(buf, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
-              address += String(buf) + " ";
-              snprintf(buf, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
-              address += String(buf) + " ";
-              snprintf(buf, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
-              address += String(buf)+"\"";
+              String address = "";
+              if(reverse_geo)
+              {
+                int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
+                char buf[get_max(loc_req_arr,5)];
+                address = "\"";
+                snprintf(buf, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
+                address += String(buf) + " ";
+                snprintf(buf, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
+                address += String(buf) + ", ";
+                snprintf(buf, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
+                address += String(buf) + ", ";
+                snprintf(buf, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
+                address += String(buf) + ", ";
+                snprintf(buf, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
+                address += String(buf)+"\"";
+              }
               server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+", \"reverse_geo\":"+address+"}");
               return;
             }
@@ -1009,19 +1015,31 @@ void print_location_oled(){
         oled.clearDisplay();
         oled.setCursor(0,0);
         oled.println("ADDRESS:");
-        char buff[10];
-        snprintf(buff, (10 > resp.location_ex.street_num_len ? resp.location_ex.street_num_len + 1 : 10), "%s", resp.location_ex.street_num);
+        int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
+        char buff[get_max(loc_req_arr,5)];
+        
+        snprintf(buff, resp.location_ex.street_num_len, "%s", resp.location_ex.street_num);
         oled.print(buff);
         oled.write(' ');
+
         snprintf(buff, (10 > resp.location_ex.address_len ? resp.location_ex.address_len + 1 : 10), "%s", resp.location_ex.address);
+        //oled.print(String(resp.location_ex.address));
         oled.print(buff);
+        oled.write(',');
         oled.write(' ');
+
         snprintf(buff, (10 > resp.location_ex.metro1_len ? resp.location_ex.metro1_len + 1 : 10), "%s", resp.location_ex.metro1);
+        //oled.print(String(resp.location_ex.metro1));
         oled.print(buff);
+        oled.write(',');
         oled.write(' ');
+
         snprintf(buff, (10 > resp.location_ex.state_code_len ? resp.location_ex.state_code_len + 1 : 10), "%s", resp.location_ex.state_code);
+        //oled.print(String(resp.location_ex.state_code));
         oled.print(buff);
+        oled.write(',');
         oled.write(' ');
+        
         snprintf(buff, (10 > resp.location_ex.postal_code_len ? resp.location_ex.postal_code_len + 1 : 10), "%s", resp.location_ex.postal_code);
         oled.println(buff);
       }
@@ -1040,6 +1058,16 @@ void print_location_oled(){
     if(state.update()) return;
     yield();
   }
+}
+
+int get_max(int buf[], int len){
+  int max = 0;
+  for(int i = 0; i < len; i++){
+    if(buf[i] > max){
+      max = buf[i];
+    }
+  }
+  return max;
 }
 
 bool get_error(String& error){
