@@ -527,7 +527,8 @@
 					u('#reverse_geo').html(data['reverse_geo']);
 				}
 				if(preferences['HPE']){
-					u('#hpe').html(data['HPE']);
+					console.log("HPE ENABLED")
+					u('#HPE').html(data['HPE']);
 				}
 				u('.locationInfo').removeClass('hidden');
 				u('.locationInfo').addClass('animated fadeIn');
