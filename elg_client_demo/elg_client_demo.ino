@@ -561,7 +561,7 @@ class ClientWiFiWrapper{
   {
     Serial.println();
     Serial.print("timestamp: ");
-    print_u64(cr->timestamp);
+//    print_u64(cr->timestamp);
 /*
     char str[100];
     sprintf(str, "%" PRIu64, cr->timestamp);
