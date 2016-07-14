@@ -770,7 +770,10 @@ class ClientWiFiWrapper{
                 snprintf(buf, resp.location_ex.postal_code_len+1, "%s", resp.location_ex.postal_code);
                 address += String(buf)+"\"";
               }
-              server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+", \"reverse_geo\":"+address+"}");
+              else{
+                address = "\"\"";
+              }
+              server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+",\"HPE\":"+resp.location.hpe+",\"reverse_geo\":"+address+"}");
               return;
             }
             else{
@@ -808,9 +811,6 @@ void setup() {
   yield();
   // Begin ESP8266 File management system
   SPIFFS.begin();
-
-  // on startup set default scan_frq in case preferences.json doesn't include
-  scan_frq = SCAN_DEFAULT_FRQ;
   // preferences.json is loaded and boolean values are set
   load_config();
   // Initialized OLED
@@ -914,6 +914,10 @@ void load_config(){
   String config_json;
   if (!file_to_string("/resources/preferences.json","r",config_json)) {
     Serial.println("Config not found!");
+    print_to_oled("Config not found","setting default values");
+    scan_frq = SCAN_DEFAULT_FRQ;
+    HPE = HPE_DEFAULT_VAL;
+    reverse_geo = REVERSE_GEO_DEFAULT_VAL;
   }
   
   DynamicJsonBuffer config_obj_buf;

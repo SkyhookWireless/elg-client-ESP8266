@@ -41,6 +41,8 @@ const char *AP_SSID = "Skyhook ELG";
 
 // intially defines scan frequency initally in case config.json isn't loaded
 #define SCAN_DEFAULT_FRQ 2000 // ms
+#define HPE_DEFAULT_VAL true
+#define REVERSE_GEO_DEFAULT_VAL true
 
 // defines how frequently the device refreshes voltage readings, rssi readings, etc
 #define DEVICE_UPDATE_RATE 1000
