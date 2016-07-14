@@ -458,7 +458,7 @@ class ClientWiFiWrapper{
   
       //rq.payload_type = LOCATION_RQ; // simple location request
       rq.payload_type = LOCATION_RQ_ADDR; // full address lookup
-      rq.version = SKY_SOFTWARE_VERSION; // skyhook client library version
+      //rq.version = SKY_SOFTWARE_VERSION; // skyhook client library version
       rq.ap_count = n & 0xFF; // set the number of scanned access points
   
       rq.aps = aps; // assign aps
@@ -560,8 +560,8 @@ class ClientWiFiWrapper{
   void print_location_resp(struct location_resp_t *cr)
   {
     Serial.println();
-//    Serial.print("timestamp: ");
-//    print_u64(cr->timestamp);
+    Serial.print("timestamp: ");
+    print_u64(cr->timestamp);
 /*
     char str[100];
     sprintf(str, "%" PRIu64, cr->timestamp);
@@ -603,7 +603,7 @@ class ClientWiFiWrapper{
             case ENCRYPT_BIN_FAILED: Serial.println("ENCRYPT_BIN_FAILED"); break;
             case ENCODE_XML_FAILED: Serial.println("ENCODE_XML_FAILED"); break;
             case DECODE_XML_FAILED: Serial.println("DECODE_XML_FAILED"); break;
-            case SOCKET_FAILED: Serial.println("SOCKET_FAILED "); break;
+            case SOCKET_OPEN_FAILED: Serial.println("SOCKET_FAILED "); break;
             case SOCKET_WRITE_FAILED: Serial.println("SOCKET_WRITE_FAILED"); break;
             case SOCKET_READ_FAILED: Serial.println("SOCKET_READ_FAILED"); break;
             case SOCKET_TIMEOUT_FAILED: Serial.println("SOCKET_TIMEOUT_FAILED"); break;
@@ -1090,7 +1090,7 @@ bool get_error(String& error){
           case ENCRYPT_BIN_FAILED: error = "ENCRYPT_BIN_FAILED"; break;
           case ENCODE_XML_FAILED: error = "ENCODE_XML_FAILED"; break;
           case DECODE_XML_FAILED: error = "DECODE_XML_FAILED"; break;
-          case SOCKET_FAILED: error = "SOCKET_FAILED "; break;
+          case SOCKET_OPEN_FAILED: error = "SOCKET_FAILED "; break;
           case SOCKET_WRITE_FAILED: error = "SOCKET_WRITE_FAILED"; break;
           case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
           case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;

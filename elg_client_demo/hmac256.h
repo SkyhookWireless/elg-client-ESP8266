@@ -1,16 +1,10 @@
-/************************************************
-* Authors: Istvan Sleder and Marwan Kallal
-* 
-* Company: Skyhook Wireless
-*
-************************************************/
 /*********************************************************************
-* Filename:   sha256.h
-* Author:     Brad Conte (brad AT bradconte.com)
-* Copyright:
-* Disclaimer: This code is presented "as is" without any guarantees.
-* Details:    Defines the API for the corresponding SHA1 implementation.
-*********************************************************************/
+ * Filename:   sha256.h
+ * Author:     Brad Conte (brad AT bradconte.com)
+ * Copyright:
+ * Disclaimer: This code is presented "as is" without any guarantees.
+ * Details:    Defines the API for the corresponding SHA1 implementation.
+ *********************************************************************/
 
 /*************************** HEADER FILES ***************************/
 #include <stddef.h>
@@ -20,17 +14,16 @@
 
 /**************************** DATA TYPES ****************************/
 typedef unsigned char BYTE;             // 8-bit byte
-typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
+typedef unsigned int WORD;  // 32-bit word, change to "long" for 16-bit machines
 
 typedef struct {
-	BYTE data[64];
-	WORD datalen;
-	unsigned long long bitlen;
-	WORD state[8];
+    BYTE data[64];
+    WORD datalen;
+    unsigned long long bitlen;
+    WORD state[8];
 } SHA256_CTX;
 
 /*********************** FUNCTION DECLARATIONS **********************/
 void hmac256_init(SHA256_CTX *ctx);
 void hmac256_update(SHA256_CTX *ctx, const BYTE data[], size_t len);
 void hmac256_final(SHA256_CTX *ctx, BYTE hash[]);
-

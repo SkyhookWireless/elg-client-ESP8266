@@ -5,7 +5,7 @@
 *
 ************************************************/
 /* url to skyhook ELG server */
-const char *SKYHOOK_ELG_SERVER_URL = "elg.skyhookwireless.com";
+const char *SKYHOOK_ELG_SERVER_URL = "useapi-dev.skyhookwireless.com";
 /* Skyhook ELG server port */
 #define SKYHOOK_ELG_SERVER_PORT 9755
 
