@@ -57,7 +57,7 @@ enum SKY_PAYLOAD_TYPE {
     PAYLOAD_ERROR = 255, // binary protocol errror
     PAYLOAD_API_ERROR = 254, // api
     SERVER_ERROR = 253,
-    LOCATION_RQ_ERROR = 252,
+    LOCATION_RQ_ERROR = 252, // internal api server error (location can not be determined) [server saying "i dunno"]
     PROBE_REQUEST = 250,
 
     /* HTTP response codes */

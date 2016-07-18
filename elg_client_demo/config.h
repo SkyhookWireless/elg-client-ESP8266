@@ -4,7 +4,8 @@
 * Company: Skyhook Wireless
 *
 ************************************************/
-/* url to skyhook ELG server */
+/* url to skyhook ELG server useapi-dev.skyhookwireless.com wapi-stage2.skyhookwireless.com*/
+//elg.skyhookwireless.com
 const char *SKYHOOK_ELG_SERVER_URL = "useapi-dev.skyhookwireless.com";
 /* Skyhook ELG server port */
 #define SKYHOOK_ELG_SERVER_PORT 9755
@@ -29,6 +30,8 @@ const char *AP_SSID = "Skyhook ELG";
 // wait for packet reception
 #define WIFI_RX_WAIT_TIME 2000 // ms
 
+#define SOCKET_TIMEOUT 5000
+
 // user button
 #define AP              1
 #define CLIENT          0
@@ -52,6 +55,6 @@ const char *AP_SSID = "Skyhook ELG";
 
 // defines the inital state on startup
 #define INITIAL_STARTUP_STATE AP
-
+#define DEBUG 1
 // micro OLED sparkfun
 // #define OLED_RESET

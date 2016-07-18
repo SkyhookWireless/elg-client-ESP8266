@@ -18,6 +18,7 @@
 #include "sky_protocol_client_1.h"
 #include "sky_crypt.h"
 #include "config.h"
+#include <math.h>
 
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
@@ -142,6 +143,7 @@ void insert_bssid_info(JsonObject& info, int index);
 
 bool get_error(String& error);
 int get_max(int buf[], int len);
+void print64(uint64_t value);
 
 void print_saved_networks();
 void print_saved_preferences();
@@ -374,6 +376,7 @@ class deviceInfo{
       update_oled();
       //device.update_oled();
     }
+    Serial.println("---------- Device State Changed ----------");
   }
 
   int getDeviceState(){
@@ -467,6 +470,10 @@ class ClientWiFiWrapper{
       rq.ble_count = 0;
       rq.cell_count = 0;
       rq.gps_count = 0;
+
+      Serial.println("\n########### Location Request ###########");
+      Serial.println("Protocol: " + String(rq.protocol));
+      Serial.println("Num APs: " + String(rq.ap_count));
   
       int cnt = sky_encode_req_bin_1(buff, sizeof(buff), &rq);
   
@@ -516,24 +523,23 @@ class ClientWiFiWrapper{
       Serial.print("sent:");
       Serial.println(wcnt);
       sent = true;
+      Serial.println("########################################\n");
   }
   bool rx(){
-    Serial.println("waiting");
 
     int n = client.available();
     while(n = client.available()){
       // check for button interrupt
       if(state.update()) return false;
-    
-      Serial.println("data present");
+
       
       // trim to buff size
       if (n > sizeof(buff)){
           n = sizeof(buff);
       }
-
+      Serial.println("\n########### Location Response ###########");
       n = client.read(buff, n);
-      Serial.print("read bytes");
+      Serial.print("read bytes: ");
       Serial.println(n);
       memset(&resp.location_ex, 0, sizeof(resp.location_ex)); // clear the values
       resp.key = &key; // assign decryption key
@@ -549,8 +555,7 @@ class ClientWiFiWrapper{
       }
 
       print_location_resp(&resp);
-
-      Serial.println("Rx done");
+      // TODO check for LOCATION_ERROR: and restart
       sent = false;
       return true;
     }
@@ -561,7 +566,9 @@ class ClientWiFiWrapper{
   {
     Serial.println();
     Serial.print("timestamp: ");
-    Serial.println((uint32_t)((cr->timestamp << 32) >> 32));
+    uint64_t timestamp = cr->timestamp; 
+    print64(timestamp);
+    Serial.println();
     
 //    print_u64(cr->timestamp);
 /*
@@ -638,6 +645,7 @@ class ClientWiFiWrapper{
         Serial.print("metro1: "); print_s(cr->location_ex.metro1, cr->location_ex.metro1_len);
         Serial.print("metro2: "); print_s(cr->location_ex.metro2, cr->location_ex.metro2_len);
         Serial.print("ip: "); print_ip(cr->location_ex.ipaddr, cr->location_ex.ip_type);
+        Serial.println("#########################################\n");
     }
   }
   // ONLY FOR DEBUGGING IN SERIAL
@@ -701,24 +709,18 @@ class ClientWiFiWrapper{
         }
       }
       else{
-        if(now - rxTimer > WIFI_RX_WAIT_TIME && check_time < 150){
-          Serial.println("waiting");
-          if(rx()){
-            rxTimer = now;
-            // SERIAL DEBUGGING
-            print_location_oled();
-            check_time = 0;
+        if(now - rxTimer > WIFI_RX_WAIT_TIME){
+          if(now - rxTimer < SOCKET_TIMEOUT){
+            if(rx()){
+              rxTimer = now;
+              // SERIAL DEBUGGING
+              print_location_oled();
+              check_time = 0;
+            }
           }
           else{
-            Serial.println("No Repsonse, retyring");
-            check_time++;
-          }
-          if(check_time >= 150){
-            oled.clearDisplay();
-            device.handle();
-            device.update_oled();
-            print_to_oled("No response","dumping request");
-            check_time = 0;
+            Serial.println("Socket Timeout"+String(now - rxTimer));
+            client.stop();
             sent = false;
           }
         }
@@ -726,9 +728,9 @@ class ClientWiFiWrapper{
     }
     else{
       oled.clearMsgArea();
-      device.handle();
       print_to_oled("Wifi Disconnected","");
     }
+    device.handle();
   }
 
   // function that will return a single location response in a form of a json
@@ -779,7 +781,6 @@ class ClientWiFiWrapper{
               return;
             }
             else{
-              Serial.println("No Repsonse, retrying");
               check_time++;
             }
             if(check_time >= 150){
@@ -809,10 +810,15 @@ void setup() {
 //  determine_on_state();
 
   // Begin Serial output
-  Serial.begin(115200);
-  yield();
+  if(DEBUG){
+    Serial.begin(115200);
+  }
+  optimistic_yield(100);
   // Begin ESP8266 File management system
   SPIFFS.begin();
+  optimistic_yield(100);
+  
+
   // preferences.json is loaded and boolean values are set
   load_config();
   // Initialized OLED
@@ -867,6 +873,7 @@ void setup() {
   server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
 
   server.begin();
+  Serial.println("Initializing Server");
 
   device.handle();
 
@@ -1066,56 +1073,12 @@ void print_location_oled(){
   }
 }
 
-int get_max(int buf[], int len){
-  int max = 0;
-  for(int i = 0; i < len; i++){
-    if(buf[i] > max){
-      max = buf[i];
-    }
-  }
-  return max;
-}
-
-bool get_error(String& error){
-  if (resp.payload_type != LOCATION_RQ && resp.payload_type != LOCATION_RQ_ADDR){
-      switch (resp.payload_type)
-      {
-          case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
-          case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
-          case SERVER_ERROR: error = "SERVER_ERROR"; break;
-          case LOCATION_RQ_ERROR: error = "LOCATION_RQ_ERROR"; break;
-          case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
-          case PROBE_REQUEST: error = "PROBE_REQUEST"; break;
-          case DECODE_BIN_FAILED: error = "DECODE_BIN_FAILED"; break;
-          case ENCODE_BIN_FAILED: error = "ENCODE_BIN_FAILED"; break;
-          case DECRYPT_BIN_FAILED: error = "DECRYPT_BIN_FAILED"; break;
-          case ENCRYPT_BIN_FAILED: error = "ENCRYPT_BIN_FAILED"; break;
-          case ENCODE_XML_FAILED: error = "ENCODE_XML_FAILED"; break;
-          case DECODE_XML_FAILED: error = "DECODE_XML_FAILED"; break;
-          case SOCKET_OPEN_FAILED: error = "SOCKET_FAILED "; break;
-          case SOCKET_WRITE_FAILED: error = "SOCKET_WRITE_FAILED"; break;
-          case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
-          case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;
-          case CREATE_META_FAILED: error = "CREATE_META_FAILED"; break;
-          case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
-      }
-      return true;
-  }
-    return false;
-}
-
 void handleRoot() {
-  String connection = "";
-  if (WiFi.SSID() != "" && WiFi.status() == WL_CONNECTED) {
-    connection = "Connected To: " + WiFi.SSID();
-  }
-  else {
-    connection = "Not connected :(";
-  }
   Serial.println("Requesting " + server.uri());
 
   File f;
   f = SPIFFS.open("/index.html", "r");
+  optimistic_yield(200);
   if (!f) {
     Serial.println(server.uri() + " does not exist");
   }
@@ -1129,8 +1092,8 @@ void handleResources() {
   Serial.println("Requesting: " + server.uri());
   // begin file mangament
   String path = server.uri();
-  String dataType = "text/plain";
-  if (path.endsWith("/")) path += "index.htm";
+  String dataType = "";
+  if (path.endsWith("/")) path += "index.html";
 
   if (path.endsWith(".src")) path = path.substring(0, path.lastIndexOf("."));
   else if (path.endsWith(".htm")) dataType = "text/html";
@@ -1144,14 +1107,13 @@ void handleResources() {
   else if (path.endsWith(".xml")) dataType = "text/xml";
   else if (path.endsWith(".pdf")) dataType = "application/pdf";
   else if (path.endsWith(".zip")) dataType = "application/zip";
-  
-  File dataFile = SPIFFS.open(path.c_str(), "r");
+  else dataType = "text/plain";
+  File dataFile = SPIFFS.open(path, "r");
   if(!dataFile){
     Serial.println(path+" not found!");
     server.send(404, "text/html", "<head></head><h1>404 Not Found</h1>");
   }
-  if (server.hasArg("download")) dataType = "application/octet-stream";
-  if (server.streamFile(dataFile, dataType) != dataFile.size()) {
+  else if (server.streamFile(dataFile, dataType) != dataFile.size()) {
     Serial.println("Error");
   }
   dataFile.close();
@@ -1334,6 +1296,58 @@ void handleNotFound() {
 //    ESP.deepSleep(0);
 //  }
 //}
+
+bool get_error(String& error){
+  if (resp.payload_type != LOCATION_RQ && resp.payload_type != LOCATION_RQ_ADDR){
+      switch (resp.payload_type)
+      {
+          case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
+          case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
+          case SERVER_ERROR: error = "SERVER_ERROR"; break;
+          case LOCATION_RQ_ERROR: error = "LOCATION_RQ_ERROR"; break;
+          case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
+          case PROBE_REQUEST: error = "PROBE_REQUEST"; break;
+          case DECODE_BIN_FAILED: error = "DECODE_BIN_FAILED"; break;
+          case ENCODE_BIN_FAILED: error = "ENCODE_BIN_FAILED"; break;
+          case DECRYPT_BIN_FAILED: error = "DECRYPT_BIN_FAILED"; break;
+          case ENCRYPT_BIN_FAILED: error = "ENCRYPT_BIN_FAILED"; break;
+          case ENCODE_XML_FAILED: error = "ENCODE_XML_FAILED"; break;
+          case DECODE_XML_FAILED: error = "DECODE_XML_FAILED"; break;
+          case SOCKET_OPEN_FAILED: error = "SOCKET_FAILED "; break;
+          case SOCKET_WRITE_FAILED: error = "SOCKET_WRITE_FAILED"; break;
+          case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
+          case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;
+          case CREATE_META_FAILED: error = "CREATE_META_FAILED"; break;
+          case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
+      }
+      return true;
+  }
+    return false;
+}
+
+int get_max(int buf[], int len){
+  int max = 0;
+  for(int i = 0; i < len; i++){
+    if(buf[i] > max){
+      max = buf[i];
+    }
+  }
+  return max;
+}
+
+void print64(uint64_t value){
+    const int NUM_DIGITS = log10(value) + 1;
+
+    char sz[NUM_DIGITS + 1];
+    
+    sz[NUM_DIGITS] =  0;
+    for ( size_t i = NUM_DIGITS; i--; value /= 10)
+    {
+        sz[i] = '0' + (value % 10);
+    }
+
+    Serial.print(sz);
+}
 
 // DEBUGGING
 void print_saved_networks() {
