@@ -398,7 +398,7 @@
 		Object.keys(network_scan_info).forEach(function(ssid_key) {
     	Object.keys(network_scan_info[ssid_key]).forEach(function(bssid_key){
     		var id_info = network_scan_info[ssid_key][bssid_key];
-    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['hidden']+'</td></tr>'
+    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['encrypt']+'</td></tr>'
     	});
   	});
   	u('.aps').html('<div><table class="animated fadeInLeft full"><thead><tr><th>BSSID</th><th>SSID</th><th>Channel</th><th>RSSI</th><th>Encrypt</th></tr></thead><tbody>'+body+'</tbody></table></div>');

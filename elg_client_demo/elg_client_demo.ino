@@ -19,9 +19,6 @@
 #include "sky_crypt.h"
 #include "config.h"
 #include <math.h>
-#include "Arduino.h"
-#include "Wire.h"
-#include "MAX1704.h"
 
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
@@ -360,7 +357,7 @@ class deviceInfo{
 
   // reads voltage from battery
   void update_voltage(){
-    float charge = fuelGauge.stateOfCharge()/100;
+    float vBat = (analogRead(A0) * 5.0) / 1024.0;
     oled.setBattery(vBat);
   }
 
@@ -819,9 +816,6 @@ void setup() {
   // Begin ESP8266 File management system
   SPIFFS.begin();
   optimistic_yield(100);
-
-  fuelGauge.reset();
-  fuelGauge.quickStart();
 
   // preferences.json is loaded and boolean values are set
   load_config();
