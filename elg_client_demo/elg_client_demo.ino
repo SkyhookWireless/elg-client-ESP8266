@@ -727,9 +727,9 @@ class ClientWiFiWrapper{
     }
     else{
       oled.clearMsgArea();
+      device.handle();
       print_to_oled("Wifi Disconnected","");
     }
-    device.handle();
   }
 
   // function that will return a single location response in a form of a json
@@ -746,47 +746,43 @@ class ClientWiFiWrapper{
           }
         }
         else{
-          if(now - rxTimer > WIFI_RX_WAIT_TIME && check_time < 150){
-            Serial.println(" ");
-            if(rx()){
-              if(get_error(error)){
-                Serial.println(error);
-                server.send(200,"application/json","{\"error\": \""+error+"\"}");
-                print_to_oled("Location error",error);
-              }
-              rxTimer = now;
-              check_time = 0;
-              String address = "";
-              if(reverse_geo)
-              {
-                int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
-                char buf[get_max(loc_req_arr,5)+1];
-                address = "\"";
-                snprintf(buf, resp.location_ex.street_num_len+1, "%s", resp.location_ex.street_num);
-                address += String(buf) + " ";
-                snprintf(buf, resp.location_ex.address_len+1, "%s", resp.location_ex.address);
-                address += String(buf) + ", ";
-                snprintf(buf, resp.location_ex.metro1_len+1, "%s", resp.location_ex.metro1);
-                address += String(buf) + ", ";
-                snprintf(buf, resp.location_ex.state_code_len+1, "%s", resp.location_ex.state_code);
-                address += String(buf) + ", ";
-                snprintf(buf, resp.location_ex.postal_code_len+1, "%s", resp.location_ex.postal_code);
-                address += String(buf)+"\"";
+          if(now - rxTimer > WIFI_RX_WAIT_TIME){
+            if(now - rxTimer < SOCKET_TIMEOUT){
+              if(rx()){
+                if(get_error(error)){
+                  Serial.println(error);
+                  server.send(200,"application/json","{\"error\": \""+error+"\"}");
+                  print_to_oled("Location error",error);
+                }
+                rxTimer = now;
+                check_time = 0;
+                String address = "";
+                if(reverse_geo)
+                {
+                  int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
+                  char buf[get_max(loc_req_arr,5)+1];
+                  address = "\"";
+                  snprintf(buf, resp.location_ex.street_num_len+1, "%s", resp.location_ex.street_num);
+                  address += String(buf) + " ";
+                  snprintf(buf, resp.location_ex.address_len+1, "%s", resp.location_ex.address);
+                  address += String(buf) + ", ";
+                  snprintf(buf, resp.location_ex.metro1_len+1, "%s", resp.location_ex.metro1);
+                  address += String(buf) + ", ";
+                  snprintf(buf, resp.location_ex.state_code_len+1, "%s", resp.location_ex.state_code);
+                  address += String(buf) + ", ";
+                  snprintf(buf, resp.location_ex.postal_code_len+1, "%s", resp.location_ex.postal_code);
+                  address += String(buf)+"\"";
+                }
+                else{
+                  address = "\"\"";
+                }
+                server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+",\"HPE\":"+resp.location.hpe+",\"reverse_geo\":"+address+"}");
+                return;
               }
               else{
-                address = "\"\"";
+                sent = false;
+                return;
               }
-              server.send(200,"application/json","{\"LAT\": "+String(resp.location.lat,5)+", \"LON\":"+String(resp.location.lon,5)+",\"HPE\":"+resp.location.hpe+",\"reverse_geo\":"+address+"}");
-              return;
-            }
-            else{
-              check_time++;
-            }
-            if(check_time >= 150){
-              check_time = 0;
-              sent = false;
-              server.send(200,"application/json","{\"error\":\"No Response From ELG Server\"}");
-              return;
             }
           }
         }
