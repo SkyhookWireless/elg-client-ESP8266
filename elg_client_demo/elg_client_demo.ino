@@ -19,6 +19,9 @@
 #include "sky_crypt.h"
 #include "config.h"
 #include <math.h>
+#include "Arduino.h"
+#include "Wire.h"
+#include "MAX1704.h"
 
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
@@ -357,7 +360,7 @@ class deviceInfo{
 
   // reads voltage from battery
   void update_voltage(){
-    float vBat = (analogRead(A0) * 5.0) / 1024.0;
+    float charge = fuelGauge.stateOfCharge()/100;
     oled.setBattery(vBat);
   }
 
@@ -555,7 +558,6 @@ class ClientWiFiWrapper{
       }
 
       print_location_resp(&resp);
-      // TODO check for LOCATION_ERROR: and restart
       sent = false;
       return true;
     }
@@ -748,7 +750,7 @@ class ClientWiFiWrapper{
         }
         else{
           if(now - rxTimer > WIFI_RX_WAIT_TIME && check_time < 150){
-            Serial.println("waiting");
+            Serial.println(" ");
             if(rx()){
               if(get_error(error)){
                 Serial.println(error);
@@ -817,7 +819,9 @@ void setup() {
   // Begin ESP8266 File management system
   SPIFFS.begin();
   optimistic_yield(100);
-  
+
+  fuelGauge.reset();
+  fuelGauge.quickStart();
 
   // preferences.json is loaded and boolean values are set
   load_config();
@@ -1008,7 +1012,7 @@ void print_location_oled(){
       if (get_error(error)){
         oled.clearDisplay();
         oled.setCursor(0,8);
-        oled.println(error);
+        oled.println("Unable to determine location");
       }
       else{
         oled.clearDisplay();
@@ -1059,7 +1063,7 @@ void print_location_oled(){
       else{
         oled.clearDisplay();
         oled.setCursor(0,8);
-        oled.println("ERROR");
+        oled.println("Unable to determine location");
       }
       oled.display();
       page2_done = true;
