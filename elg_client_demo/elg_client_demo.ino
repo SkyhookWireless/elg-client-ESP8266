@@ -747,7 +747,7 @@ class ClientWiFiWrapper{
         }
         else{
           if(now - rxTimer > WIFI_RX_WAIT_TIME){
-            if(now - rxTimer < SOCKET_TIMEOUT){
+            while(!(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME)){
               if(rx()){
                 if(get_error(error)){
                   Serial.println(error);
@@ -781,6 +781,7 @@ class ClientWiFiWrapper{
               }
               else{
                 sent = false;
+                server.send(200,"application/json","{\"error\":\"No Response\"}");
                 return;
               }
             }
