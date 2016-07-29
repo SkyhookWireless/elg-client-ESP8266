@@ -19,6 +19,8 @@
 #include "sky_crypt.h"
 #include "config.h"
 #include <math.h>
+#include <Wire.h>
+#include <LiFuelGauge.h>
 
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
@@ -60,6 +62,7 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
+volatile boolean alert = false;
 
 
 // gloabls required for location request and response
@@ -144,6 +147,7 @@ void insert_bssid_info(JsonObject& info, int index);
 bool get_error(String& error);
 int get_max(int buf[], int len);
 void print64(uint64_t value);
+void lowPower() { alert = true; }
 
 void print_saved_networks();
 void print_saved_preferences();
@@ -156,6 +160,7 @@ const char *password = "";
 ESP8266WebServer server(80);
 WiFiClient client;
 Adafruit_FeatherOLED_WiFi oled = Adafruit_FeatherOLED_WiFi();
+LiFuelGauge gauge(MAX17043, 0, lowPower);
 
 class Button{
   unsigned long previousMillis;
@@ -317,6 +322,7 @@ class APWiFiWrapper {
       obj.printTo(responseJSON, obj.measureLength() + 1);
       // obj.prettyPrintTo(Serial);
       server.send(200, "application/json", responseJSON);
+      optimistic_yield(200);
       free(responseJSON);
     }
 };
@@ -350,29 +356,43 @@ class deviceInfo{
   // updates displayed network info
   void update_oled(){
     update_voltage();
-    oled.setRSSI(WiFi.RSSI());
+    if(WiFi.status() == WL_CONNECTED){
+        oled.setRSSI(WiFi.RSSI());
+    }
+    else{
+      oled.setRSSI(0);
+    }
     oled.setIPAddress((uint32_t)WiFi.localIP());
     oled.refreshIcons();
   }
 
   // reads voltage from battery
   void update_voltage(){
-    float vBat = (analogRead(A0) * 5.0) / 1024.0;
-    oled.setBattery(vBat);
+    oled.setBattery(gauge.getVoltage(), gauge.getSOC());
   }
 
   void change_state(){
     oled.clearDisplay();
     esp_state = !esp_state;
     if(esp_state == AP){
+      oled.setConnected(AP);
+      oled.setConnectedVisible(true);
+      oled.setRSSIVisible(true);
+      oled.setIPAddressVisible(true);
+      oled.setVoltageVisible(true);
       //print_to_oled("AP", "");
       print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
-      oled.setConnected(AP);
       update_oled();
     }
     else{
       //print_to_oled("Client", "");
       oled.setConnected(CLIENT);
+      oled.setConnectedVisible(false);
+      oled.setRSSIVisible(false);
+      oled.setIPAddressVisible(false);
+      oled.setVoltageVisible(false);
+      oled.refreshIcons();
+      
       update_oled();
       //device.update_oled();
     }
@@ -800,7 +820,6 @@ ClientWiFiWrapper client_req;
 
 // start state of the device to be in Client mode on bootup
 // Change to start in Client Mode.
-
 void setup() {
 /* Uncomment the next line to make the RST pin/button a soft on/off button*/
 //  determine_on_state();
@@ -809,10 +828,16 @@ void setup() {
   if(DEBUG){
     Serial.begin(115200);
   }
+  
   optimistic_yield(100);
   // Begin ESP8266 File management system
   SPIFFS.begin();
   optimistic_yield(100);
+
+  gauge.reset();
+  optimistic_yield(100);
+  gauge.setAlertThreshold(ALERT_THRESHOLD);
+  Serial.println(String("Alert Threshold is set to ") + gauge.getAlertThreshold() + '%');
 
   // preferences.json is loaded and boolean values are set
   load_config();
@@ -1002,11 +1027,13 @@ void print_location_oled(){
     if(!page1_done){
       if (get_error(error)){
         oled.clearDisplay();
+        device.update_oled();
         oled.setCursor(0,8);
         oled.println("Unable to determine location");
       }
       else{
         oled.clearDisplay();
+        device.update_oled();
         oled.setCursor(0,0);
         oled.println("INFO:");
         oled.println("LAT: " + String(resp.location.lat, 5));
@@ -1021,6 +1048,7 @@ void print_location_oled(){
     if(now - start_time > page1_display_timer && !page2_done){
       if(resp.payload_type == LOCATION_RQ_ADDR){
         oled.clearDisplay();
+        device.update_oled();
         oled.setCursor(0,0);
         oled.println("ADDRESS:");
         int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
@@ -1142,6 +1170,7 @@ void handleScan() {
   }
   scan_obj.prettyPrintTo(Serial);
   main_wifi.send_json_response(scan_obj);
+  Serial.println("JSON Sent");
   WiFi.scanDelete();
   oled.clearMsgArea();
 }
@@ -1367,4 +1396,5 @@ void print_saved_preferences(){
   bssid_obj.prettyPrintTo(Serial);
   Serial.println();
 }
+
 

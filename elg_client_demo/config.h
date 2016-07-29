@@ -56,5 +56,6 @@ const char *AP_SSID = "Skyhook ELG";
 // defines the inital state on startup
 #define INITIAL_STARTUP_STATE AP
 #define DEBUG 1
+#define ALERT_THRESHOLD 10 // %
 // micro OLED sparkfun
 // #define OLED_RESET
