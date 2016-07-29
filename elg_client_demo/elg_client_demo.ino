@@ -362,6 +362,12 @@ class deviceInfo{
     else{
       oled.setRSSI(0);
     }
+    if(alert){
+      oled.setBatteryLow(true);
+    }
+    else{
+      oled.setBatteryLow(false);
+    }
     oled.setIPAddress((uint32_t)WiFi.localIP());
     oled.refreshIcons();
   }
@@ -846,7 +852,6 @@ void setup() {
   oled.clearDisplay();
   // Clears RSSI
   oled.setRSSI(0);
-
   // Display Logo for Skyhook
   oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
   oled.display();
