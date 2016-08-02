@@ -48,7 +48,7 @@ const char *AP_SSID = "Skyhook ELG";
 #define REVERSE_GEO_DEFAULT_VAL true
 
 // defines how frequently the device refreshes voltage readings, rssi readings, etc
-#define DEVICE_UPDATE_RATE 500
+#define DEVICE_UPDATE_RATE 1000
 
 // max number of successfully connected AP's that are saved into AP.json
 #define MAX_AUTOJOIN_APS 5

@@ -401,7 +401,7 @@
     		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['encrypt']+'</td></tr>'
     	});
   	});
-  	u('.aps').html('<div><table class="animated fadeInLeft full"><thead><tr><th>BSSID</th><th>SSID</th><th>Channel</th><th>RSSI</th><th>Encrypt</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+  	u('.aps').html('<div><table class="animated fadeInLeft full"><thead><tr><th>SSID</th><th>BSSID</th><th>Channel</th><th>RSSI</th><th>Encrypt</th></tr></thead><tbody>'+body+'</tbody></table></div>');
 	}
 	var scan = function(){
 		console.log('scanning');

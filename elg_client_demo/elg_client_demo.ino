@@ -62,8 +62,6 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
-volatile boolean alert = false;
-
 
 // gloabls required for location request and response
 struct aes_key_t key = {USERID, AES_KEY};
@@ -147,7 +145,6 @@ void insert_bssid_info(JsonObject& info, int index);
 bool get_error(String& error);
 int get_max(int buf[], int len);
 void print64(uint64_t value);
-void lowPower() { alert = true; }
 
 void print_saved_networks();
 void print_saved_preferences();
@@ -160,7 +157,7 @@ const char *password = "";
 ESP8266WebServer server(80);
 WiFiClient client;
 Adafruit_FeatherOLED_WiFi oled = Adafruit_FeatherOLED_WiFi();
-LiFuelGauge gauge(MAX17043, 0, lowPower);
+LiFuelGauge gauge(MAX17043);
 
 class Button{
   unsigned long previousMillis;
@@ -362,12 +359,6 @@ class deviceInfo{
     else{
       oled.setRSSI(0);
     }
-    if(alert){
-      oled.setBatteryLow(true);
-    }
-    else{
-      oled.setBatteryLow(false);
-    }
     oled.setIPAddress((uint32_t)WiFi.localIP());
     oled.refreshIcons();
   }
@@ -375,6 +366,12 @@ class deviceInfo{
   // reads voltage from battery
   void update_voltage(){
     oled.setBattery(gauge.getVoltage(), gauge.getSOC());
+    if(gauge.getSOC() <= ALERT_THRESHOLD){
+      oled.setBatteryLow(true);
+    }
+    else{
+      oled.setBatteryLow(false);
+    }
   }
 
   void change_state(){
@@ -872,7 +869,7 @@ void setup() {
   uint8_t mac[WL_MAC_ADDR_LENGTH];
 
   // station mode allows both client and AP mode
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_AP);
   Serial.println();
   Serial.println("Configuring access point...");
   
@@ -1141,8 +1138,10 @@ void handleResources() {
     Serial.println(path+" not found!");
     server.send(404, "text/html", "<head></head><h1>404 Not Found</h1>");
   }
-  else if (server.streamFile(dataFile, dataType) != dataFile.size()) {
-    Serial.println("Error");
+  else{ 
+    if (server.streamFile(dataFile, dataType) != dataFile.size()) {
+      Serial.println("Error");
+    }
   }
   dataFile.close();
 }
