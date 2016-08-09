@@ -451,10 +451,11 @@ class ClientWiFiWrapper{
     {
       String ssid = it->key;
       String pw = bssid_obj[it->key]["pw"];
-      // Serial.println("adding " + ssid);
-      WiFiMulti.addAP(bssid_obj[it->key]["ssid"],bssid_obj[it->key]["pw"]);
+      Serial.println(ssid);
+      Serial.println(pw);
+      WiFiMulti.addAP(ssid.c_str(), pw.c_str());
     }
-    //Serial.println(str_status[WiFiMulti.run()]);
+    Serial.println(str_status[WiFiMulti.run()]);
   }
 
   // scans surrounding AP's and sends info to elg server
@@ -869,7 +870,7 @@ void setup() {
   uint8_t mac[WL_MAC_ADDR_LENGTH];
 
   // station mode allows both client and AP mode
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
   Serial.println();
   Serial.println("Configuring access point...");
   
