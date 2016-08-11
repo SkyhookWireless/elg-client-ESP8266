@@ -12,13 +12,11 @@ const char *SKYHOOK_ELG_SERVER_URL = "useapi-dev.skyhookwireless.com";
 
 /* userid provided by Skyhook */
 /* replace this with yours */
-#define USERID 12345
-
+#define USERID 24162
 /*  AES key provided by Skyhook */
 /* replace this with yours */
 /* store the key in a secure area */
 #define AES_KEY {0x02,0x43,0x21,0xA2,0x7D,0x72,0x0F,0x01,0x21,0x12,0x02,0x12,0x02,0x12,0x02,0x21}
-
 // access point ap name
 const char *AP_SSID = "Skyhook ELG";
 // access point port number
@@ -56,6 +54,6 @@ const char *AP_SSID = "Skyhook ELG";
 // defines the inital state on startup
 #define INITIAL_STARTUP_STATE CLIENT
 #define DEBUG 1
-#define ALERT_THRESHOLD 5 // %
+#define ALERT_THRESHOLD 15 // %
 // micro OLED sparkfun
 // #define OLED_RESET

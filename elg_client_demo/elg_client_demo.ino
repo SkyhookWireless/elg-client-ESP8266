@@ -344,6 +344,9 @@ class deviceInfo{
       return;
     }
     now = millis();
+    if(WiFi.status() != WL_CONNECTED){
+        WiFi.disconnect();
+    }
     if(now - last_update > DEVICE_UPDATE_RATE){
       update_oled(); 
       last_update = now;
@@ -374,9 +377,7 @@ class deviceInfo{
     }
   }
 
-  void change_state(){
-    oled.clearDisplay();
-    esp_state = !esp_state;
+  void set_state_settings(){
     if(esp_state == AP){
       oled.setConnected(AP);
       oled.setConnectedVisible(true);
@@ -399,6 +400,12 @@ class deviceInfo{
       update_oled();
       //device.update_oled();
     }
+  }
+
+  void change_state(){
+    oled.clearDisplay();
+    esp_state = !esp_state;
+    set_state_settings();
     Serial.println("---------- Device State Changed ----------");
   }
 
@@ -455,7 +462,9 @@ class ClientWiFiWrapper{
       Serial.println(pw);
       WiFiMulti.addAP(ssid.c_str(), pw.c_str());
     }
+    WiFi.scanNetworks(false,true);
     Serial.println(str_status[WiFiMulti.run()]);
+    WiFi.scanDelete();
   }
 
   // scans surrounding AP's and sends info to elg server
@@ -547,6 +556,7 @@ class ClientWiFiWrapper{
       Serial.print("sent:");
       Serial.println(wcnt);
       sent = true;
+      WiFi.scanDelete();
       Serial.println("########################################\n");
   }
   bool rx(){
@@ -570,12 +580,14 @@ class ClientWiFiWrapper{
 
       if (sky_aes_decrypt(buff + RESPONSE_HEAD_SIZE_1, n - RESPONSE_HEAD_SIZE_1, key.aes_key, buff + RESPONSE_IV_OFFSET_1) != 0){
           Serial.println("failed to decrypt response");
+          return false;
       }
 
       int res = sky_decode_resp_bin_1(buff, sizeof(buff), n, &resp);
 
       if (res == -1){
           Serial.println("failed to decode response");
+          return false;
       }
 
       print_location_resp(&resp);
@@ -742,7 +754,7 @@ class ClientWiFiWrapper{
             }
           }
           else{
-            Serial.println("Socket Timeout"+String(now - rxTimer));
+            Serial.println("Socket Timeout "+String(now - rxTimer));
             client.stop();
             sent = false;
           }
@@ -828,9 +840,13 @@ void setup() {
 /* Uncomment the next line to make the RST pin/button a soft on/off button*/
 //  determine_on_state();
 
+//  WiFi.setAutoReconnect(true);
+//  WiFi.setAutoConnect(true);
+
   // Begin Serial output
   if(DEBUG){
     Serial.begin(115200);
+    Serial.setDebugOutput(true);
   }
   
   optimistic_yield(100);
@@ -853,7 +869,7 @@ void setup() {
   // Display Logo for Skyhook
   oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
   oled.display();
-
+  WiFi.mode(WIFI_AP_STA);
   // display logo for 4 seconds with no interrupts but allow device to run processes
   unsigned long now = millis();
   unsigned long start = now;
@@ -870,7 +886,6 @@ void setup() {
   uint8_t mac[WL_MAC_ADDR_LENGTH];
 
   // station mode allows both client and AP mode
-  WiFi.mode(WIFI_AP_STA);
   Serial.println();
   Serial.println("Configuring access point...");
   
@@ -922,7 +937,7 @@ void setup() {
   
   Serial.println("HTTP server started");
   Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
-
+  device.set_state_settings();
   if(device.getDeviceState() == AP){
     print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
   }
@@ -937,7 +952,6 @@ void loop() {
   else{
     client_req.handle();
   }
-  // Serial.println(esp_state);
   state.update();
   yield();
 }
@@ -1032,7 +1046,7 @@ void print_location_oled(){
         oled.clearDisplay();
         device.update_oled();
         oled.setCursor(0,8);
-        oled.println("Unable to determine location");
+        oled.println("Unable to determine  location");
       }
       else{
         oled.clearDisplay();
