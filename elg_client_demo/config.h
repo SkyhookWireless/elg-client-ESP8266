@@ -12,7 +12,7 @@ const char *SKYHOOK_ELG_SERVER_URL = "useapi-dev.skyhookwireless.com";
 
 /* userid provided by Skyhook */
 /* replace this with yours */
-#define USERID 24162
+#define USERID 12345
 /*  AES key provided by Skyhook */
 /* replace this with yours */
 /* store the key in a secure area */
