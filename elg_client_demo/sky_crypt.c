@@ -30,7 +30,7 @@ void sky_gen_iv(unsigned char *iv) {
 int sky_aes_encrypt(unsigned char *data, uint32_t data_len, unsigned char *key,
         unsigned char *iv) {
     if (data_len & 0x0F) {
-        //perror("non 16 byte blocks");
+        perror("non 16 byte blocks");
         return -1;
     }
 
@@ -45,7 +45,7 @@ int sky_aes_encrypt(unsigned char *data, uint32_t data_len, unsigned char *key,
 int sky_aes_decrypt(unsigned char *data, uint32_t data_len, unsigned char *key,
         unsigned char *iv) {
     if (data_len & 0x0F) {
-        //perror("non 16 byte blocks");
+        perror("non 16 byte blocks");
         return -1;
     }
 
