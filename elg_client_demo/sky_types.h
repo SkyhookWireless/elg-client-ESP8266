@@ -8,6 +8,7 @@
 #define SKY_TYPES_H
 
 #include <inttypes.h>
+// #include <netinet/in.h>
 
 // server error
 #define SERVER_ERR 0xFF
@@ -56,7 +57,7 @@ enum SKY_PAYLOAD_TYPE {
     PAYLOAD_ERROR = 255, // binary protocol errror
     PAYLOAD_API_ERROR = 254, // api
     SERVER_ERROR = 253,
-    LOCATION_RQ_ERROR = 252,
+    LOCATION_RQ_ERROR = 252, // internal api server error (location can not be determined) [server saying "i dunno"]
     PROBE_REQUEST = 250,
 
     /* HTTP response codes */
@@ -109,13 +110,9 @@ enum SKY_PAYLOAD_TYPE {
 };
 
 // error codes
-#ifdef __cplusplus
-enum class Status
-#else
-enum STATUS
-#endif
+enum ELG_STATUS
 {
-    OK = 0,
+    ELG_OK = 0,
     ZLOG_INIT_PERM,
     ZLOG_INIT_ERR,
     LOAD_CONFIG_FAILED,

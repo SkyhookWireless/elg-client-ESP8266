@@ -1046,7 +1046,7 @@ void print_location_oled(){
         oled.clearDisplay();
         device.update_oled();
         oled.setCursor(0,8);
-        oled.println("Unable to determine location");
+        oled.println("Unable to determine  location");
       }
       else{
         oled.clearDisplay();
