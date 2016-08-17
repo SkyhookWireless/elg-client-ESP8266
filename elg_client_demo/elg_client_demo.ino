@@ -14,9 +14,8 @@
 #include "FS.h"
 #include <ArduinoJson.h>
 #include <EEPROM.h>
-#include "sky_types.h"
-#include "sky_protocol_client_1.h"
 #include "sky_crypt.h"
+#include "sky_protocol.h"
 #include "config.h"
 #include <math.h>
 #include <Wire.h>
@@ -64,9 +63,9 @@ bool HPE = true;
 int scan_frq;
 
 // gloabls required for location request and response
-struct aes_key_t key = {USERID, AES_KEY};
-struct location_req_t rq;
-struct location_resp_t resp;
+struct sky_key_t key = {USERID, AES_KEY};
+struct location_rq_t rq;
+struct location_rsp_t resp;
 bool sent;
 
 // function type
@@ -110,7 +109,7 @@ bool file_to_string(String path, const char* type, String& ret_buf);
 // prints a and message b on msgArea specified by oled feather library in seperate lines
 void print_to_oled(String a, String b);
 
-// prints the currently location in location_resp_t struct to oled
+// prints the currently location in location_rsp_t struct to oled
 void print_location_oled();
 
 // sends the index.htm page to the client
@@ -484,16 +483,16 @@ class ClientWiFiWrapper{
         yield();
     }
     // create location request
-      rq.key = &key; // assign key
+      rq.key = key; // assign key
   
       // set mac address
-      WiFi.macAddress(rq.MAC);
+      WiFi.macAddress(rq.mac);
   
       // set protocol version
-      rq.protocol = SKY_PROTOCOL_VERSION;
+      rq.header.version = SKY_PROTOCOL_VERSION;
   
-      //rq.payload_type = LOCATION_RQ; // simple location request
-      rq.payload_type = LOCATION_RQ_ADDR; // full address lookup
+      //rq.payload_ext.payload.type = LOCATION_RQ; // simple location request
+      rq.payload_ext.payload.type = LOCATION_RQ_ADDR; // full address lookup
       //rq.version = SKY_SOFTWARE_VERSION; // skyhook client library version
       rq.ap_count = n & 0xFF; // set the number of scanned access points
   
@@ -505,10 +504,10 @@ class ClientWiFiWrapper{
       rq.gps_count = 0;
 
       Serial.println("\n########### Location Request ###########");
-      Serial.println("Protocol: " + String(rq.protocol));
+      Serial.println("Protocol: " + String(rq.header.version));
       Serial.println("Num APs: " + String(rq.ap_count));
   
-      int cnt = sky_encode_req_bin_1(buff, sizeof(buff), &rq);
+      int cnt = sky_encode_req_bin(buff, sizeof(buff), &rq);
   
       if (cnt == -1){
           Serial.println("failed to encode request");
@@ -516,7 +515,7 @@ class ClientWiFiWrapper{
       }
   
       /* encrypt buffer, use hardware encryption when available */
-      int r = sky_aes_encrypt(buff + REQUEST_HEAD_SIZE_1, cnt - REQUEST_HEAD_SIZE_1, key.aes_key, buff + REQUEST_IV_OFFSET_1);
+      int r = sky_aes_encrypt(buff + sizeof(sky_rq_header_t), cnt - sizeof(sky_rq_header_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv));
   
       if (r == -1){
           Serial.println("failed to encrypt");
@@ -575,15 +574,15 @@ class ClientWiFiWrapper{
       n = client.read(buff, n);
       Serial.print("read bytes: ");
       Serial.println(n);
-      memset(&resp.location_ex, 0, sizeof(resp.location_ex)); // clear the values
-      resp.key = &key; // assign decryption key
+      memset(&resp.location_ext, 0, sizeof(resp.location_ext)); // clear the values
+      resp.key = key; // assign decryption key
 
-      if (sky_aes_decrypt(buff + RESPONSE_HEAD_SIZE_1, n - RESPONSE_HEAD_SIZE_1, key.aes_key, buff + RESPONSE_IV_OFFSET_1) != 0){
+      if (sky_aes_decrypt(buff + sizeof(sky_rq_header_t), n - sizeof(sky_rq_header_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv)) != 0){
           Serial.println("failed to decrypt response");
           return false;
       }
 
-      int res = sky_decode_resp_bin_1(buff, sizeof(buff), n, &resp);
+      int res = sky_decode_resp_bin(buff, sizeof(buff), n, &resp);
 
       if (res == -1){
           Serial.println("failed to decode response");
@@ -597,13 +596,15 @@ class ClientWiFiWrapper{
     return false;
   }
   // ONLY FOR DEBUGGING IN SERIAL
-  void print_location_resp(struct location_resp_t *cr)
+  void print_location_resp(struct location_rsp_t *cr)
   {
     Serial.println();
     Serial.print("timestamp: ");
-    uint64_t timestamp = cr->timestamp; 
-    print64(timestamp);
-    Serial.println();
+    // TODO: TIMESTAM UINT8_T array to UINT64
+
+    // uint64_t timestamp = cr->payload_ext.payload.timestamp; 
+    // print64(timestamp);
+    // Serial.println();
     
 //    print_u64(cr->timestamp);
 /*
@@ -611,35 +612,35 @@ class ClientWiFiWrapper{
     sprintf(str, "%" PRIu64, cr->timestamp);
     Serial.println(str);
 */
-    Serial.print("protocol: "); Serial.println(cr->protocol);
-    Serial.print("server version: "); Serial.println(cr->version);
-    Serial.print("payload type no: "); Serial.println(cr->payload_type);
+    Serial.print("protocol: "); Serial.println(cr->header.version);
+    //Serial.print("server version: "); Serial.println(cr->version);
+    Serial.print("payload type no: "); Serial.println(cr->payload_ext.payload.type);
     
     // http codes
-    if (cr->payload_type < HTTP_UNKNOWN && cr->payload_type >= HTTP_200)
-    {
-        int err;
-        if (cr->payload_type > HTTP_505) err = HTTP_UNKNOWN;
-        else if (cr->payload_type >= HTTP_500) err = cr->payload_type - HTTP_500 + 500;
-        else if (cr->payload_type > HTTP_417) err = HTTP_UNKNOWN;
-        else if (cr->payload_type >= HTTP_400) err = cr->payload_type - HTTP_400 + 400;
-        else if (cr->payload_type > HTTP_307) err = HTTP_UNKNOWN;
-        else if (cr->payload_type >= HTTP_300) err = cr->payload_type - HTTP_300 + 300;
-        else if (cr->payload_type > HTTP_206) err = HTTP_UNKNOWN;
-        else if (cr->payload_type >= HTTP_200) err = cr->payload_type - HTTP_200 + 200;
-        else err = HTTP_UNKNOWN;
+    // if (cr->payload_ext.payload.type < HTTP_UNKNOWN && cr->payload_ext.payload.type >= HTTP_200)
+    // {
+    //     int err;
+    //     if (cr->payload_ext.payload.type > HTTP_505) err = HTTP_UNKNOWN;
+    //     else if (cr->payload_ext.payload.type >= HTTP_500) err = cr->payload_ext.payload.type - HTTP_500 + 500;
+    //     else if (cr->payload_ext.payload.type > HTTP_417) err = HTTP_UNKNOWN;
+    //     else if (cr->payload_ext.payload.type >= HTTP_400) err = cr->payload_ext.payload.type - HTTP_400 + 400;
+    //     else if (cr->payload_ext.payload.type > HTTP_307) err = HTTP_UNKNOWN;
+    //     else if (cr->payload_ext.payload.type >= HTTP_300) err = cr->payload_ext.payload.type - HTTP_300 + 300;
+    //     else if (cr->payload_ext.payload.type > HTTP_206) err = HTTP_UNKNOWN;
+    //     else if (cr->payload_ext.payload.type >= HTTP_200) err = cr->payload_ext.payload.type - HTTP_200 + 200;
+    //     else err = HTTP_UNKNOWN;
 
-        Serial.print("HTTP "); Serial.println(err);
-    }
-    else
-    {
-        switch (cr->payload_type)
+    //     Serial.print("HTTP "); Serial.println(err);
+    // }
+    // else
+    // {
+        switch (cr->payload_ext.payload.type)
         {
-            case PAYLOAD_ERROR: Serial.println("PAYLOAD_ERROR"); break;
-            case PAYLOAD_API_ERROR: Serial.println("PAYLOAD_API_ERROR"); break;
-            case SERVER_ERROR: Serial.println("SERVER_ERROR"); break;
+            //case PAYLOAD_ERROR: Serial.println("PAYLOAD_ERROR"); break;
+            //case PAYLOAD_API_ERROR: Serial.println("PAYLOAD_API_ERROR"); break;
+            //case SERVER_ERROR: Serial.println("SERVER_ERROR"); break;
             case LOCATION_RQ_ERROR: Serial.println("LOCATION_RQ_ERROR"); break;
-            case PAYLOAD_NONE: Serial.println("PAYLOAD_NONE"); break;
+            //case PAYLOAD_NONE: Serial.println("PAYLOAD_NONE"); break;
             case PROBE_REQUEST: Serial.println("PROBE_REQUEST"); break;
             case DECODE_BIN_FAILED: Serial.println("DECODE_BIN_FAILED"); break;
             case ENCODE_BIN_FAILED: Serial.println("ENCODE_BIN_FAILED"); break;
@@ -652,34 +653,34 @@ class ClientWiFiWrapper{
             case SOCKET_READ_FAILED: Serial.println("SOCKET_READ_FAILED"); break;
             case SOCKET_TIMEOUT_FAILED: Serial.println("SOCKET_TIMEOUT_FAILED"); break;
             case CREATE_META_FAILED: Serial.println("CREATE_META_FAILED"); break;
-            case HTTP_UNKNOWN: Serial.println("HTTP_UNKNOWN"); break;
+            //case HTTP_UNKNOWN: Serial.println("HTTP_UNKNOWN"); break;
         }
-    }
+    // }
 
-    if (cr->payload_type != LOCATION_RQ &&
-        cr->payload_type != LOCATION_RQ_ADDR) return;
+    if (cr->payload_ext.payload.type != LOCATION_RQ &&
+        cr->payload_ext.payload.type != LOCATION_RQ_ADDR) return;
 
     Serial.println("LOCATION_RQ");
     Serial.print("latitude: "); Serial.println(cr->location.lat, 6);
     Serial.print("longitude: "); Serial.println(cr->location.lon, 6);
     Serial.print("hpe: "); Serial.println(cr->location.hpe);
     
-    if (cr->payload_type == LOCATION_RQ_ADDR)
+    if (cr->payload_ext.payload.type == LOCATION_RQ_ADDR)
     {
         Serial.println("LOCATION_RQ_ADDR");
-        Serial.print("distance_to_point: "); Serial.println(cr->location_ex.distance_to_point);
-        Serial.print("street num: "); print_s(cr->location_ex.street_num, cr->location_ex.street_num_len);
-        Serial.print("address: "); print_s(cr->location_ex.address, cr->location_ex.address_len);
-        Serial.print("city: "); print_s(cr->location_ex.city, cr->location_ex.city_len);
-        Serial.print("state: "); print_s(cr->location_ex.state, cr->location_ex.state_len);
-        Serial.print("state code: "); print_s(cr->location_ex.state_code, cr->location_ex.state_code_len);
-        Serial.print("postal code: "); print_s(cr->location_ex.postal_code, cr->location_ex.postal_code_len);
-        Serial.print("county: "); print_s(cr->location_ex.county, cr->location_ex.county_len);
-        Serial.print("country: "); print_s(cr->location_ex.country, cr->location_ex.country_len);
-        Serial.print("country code: "); print_s(cr->location_ex.country_code, cr->location_ex.country_code_len);
-        Serial.print("metro1: "); print_s(cr->location_ex.metro1, cr->location_ex.metro1_len);
-        Serial.print("metro2: "); print_s(cr->location_ex.metro2, cr->location_ex.metro2_len);
-        Serial.print("ip: "); print_ip(cr->location_ex.ipaddr, cr->location_ex.ip_type);
+        Serial.print("distance_to_point: "); Serial.println(cr->location.distance_to_point);
+        Serial.print("street num: "); print_s(cr->location_ext.street_num, cr->location_ext.street_num_len);
+        Serial.print("address: "); print_s(cr->location_ext.address, cr->location_ext.address_len);
+        Serial.print("city: "); print_s(cr->location_ext.city, cr->location_ext.city_len);
+        Serial.print("state: "); print_s(cr->location_ext.state, cr->location_ext.state_len);
+        Serial.print("state code: "); print_s(cr->location_ext.state_code, cr->location_ext.state_code_len);
+        Serial.print("postal code: "); print_s(cr->location_ext.postal_code, cr->location_ext.postal_code_len);
+        Serial.print("county: "); print_s(cr->location_ext.county, cr->location_ext.county_len);
+        Serial.print("country: "); print_s(cr->location_ext.country, cr->location_ext.country_len);
+        Serial.print("country code: "); print_s(cr->location_ext.country_code, cr->location_ext.country_code_len);
+        Serial.print("metro1: "); print_s(cr->location_ext.metro1, cr->location_ext.metro1_len);
+        Serial.print("metro2: "); print_s(cr->location_ext.metro2, cr->location_ext.metro2_len);
+        Serial.print("ip: "); print_ip(cr->location_ext.ip_addr, cr->location_ext.ip_type);
         Serial.println("#########################################\n");
     }
   }
@@ -795,18 +796,18 @@ class ClientWiFiWrapper{
                 String address = "";
                 if(reverse_geo)
                 {
-                  int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
+                  int loc_req_arr[5]={resp.location_ext.street_num_len,resp.location_ext.address_len,resp.location_ext.metro1_len,resp.location_ext.state_code_len,resp.location_ext.postal_code_len};
                   char buf[get_max(loc_req_arr,5)+1];
                   address = "\"";
-                  snprintf(buf, resp.location_ex.street_num_len+1, "%s", resp.location_ex.street_num);
+                  snprintf(buf, resp.location_ext.street_num_len+1, "%s", resp.location_ext.street_num);
                   address += String(buf) + " ";
-                  snprintf(buf, resp.location_ex.address_len+1, "%s", resp.location_ex.address);
+                  snprintf(buf, resp.location_ext.address_len+1, "%s", resp.location_ext.address);
                   address += String(buf) + ", ";
-                  snprintf(buf, resp.location_ex.metro1_len+1, "%s", resp.location_ex.metro1);
+                  snprintf(buf, resp.location_ext.metro1_len+1, "%s", resp.location_ext.metro1);
                   address += String(buf) + ", ";
-                  snprintf(buf, resp.location_ex.state_code_len+1, "%s", resp.location_ex.state_code);
+                  snprintf(buf, resp.location_ext.state_code_len+1, "%s", resp.location_ext.state_code);
                   address += String(buf) + ", ";
-                  snprintf(buf, resp.location_ex.postal_code_len+1, "%s", resp.location_ex.postal_code);
+                  snprintf(buf, resp.location_ext.postal_code_len+1, "%s", resp.location_ext.postal_code);
                   address += String(buf)+"\"";
                 }
                 else{
@@ -1063,37 +1064,37 @@ void print_location_oled(){
       page1_done = true;
     }
     if(now - start_time > page1_display_timer && !page2_done){
-      if(resp.payload_type == LOCATION_RQ_ADDR){
+      if(resp.payload_ext.payload.type == LOCATION_RQ_ADDR){
         oled.clearDisplay();
         device.update_oled();
         oled.setCursor(0,0);
         oled.println("ADDRESS:");
-        int loc_req_arr[5]={resp.location_ex.street_num_len,resp.location_ex.address_len,resp.location_ex.metro1_len,resp.location_ex.state_code_len,resp.location_ex.postal_code_len};
+        int loc_req_arr[5]={resp.location_ext.street_num_len,resp.location_ext.address_len,resp.location_ext.metro1_len,resp.location_ext.state_code_len,resp.location_ext.postal_code_len};
         char buff[get_max(loc_req_arr,5)+1];
         
-        snprintf(buff, resp.location_ex.street_num_len+1, "%s", resp.location_ex.street_num);
+        snprintf(buff, resp.location_ext.street_num_len+1, "%s", resp.location_ext.street_num);
         oled.print(buff);
         oled.write(' ');
 
-        snprintf(buff, resp.location_ex.address_len+1, "%s", resp.location_ex.address);
+        snprintf(buff, resp.location_ext.address_len+1, "%s", resp.location_ext.address);
         //oled.print(String(resp.location_ex.address));
         oled.print(buff);
         oled.write(',');
         oled.write(' ');
 
-        snprintf(buff, resp.location_ex.metro1_len+1, "%s", resp.location_ex.metro1);
+        snprintf(buff, resp.location_ext.metro1_len+1, "%s", resp.location_ext.metro1);
         //oled.print(String(resp.location_ex.metro1));
         oled.print(buff);
         oled.write(',');
         oled.write(' ');
 
-        snprintf(buff, resp.location_ex.state_code_len+1, "%s", resp.location_ex.state_code);
+        snprintf(buff, resp.location_ext.state_code_len+1, "%s", resp.location_ext.state_code);
         //oled.print(String(resp.location_ex.state_code));
         oled.print(buff);
         oled.write(',');
         oled.write(' ');
         
-        snprintf(buff, resp.location_ex.postal_code_len+1, "%s", resp.location_ex.postal_code);
+        snprintf(buff, resp.location_ext.postal_code_len+1, "%s", resp.location_ext.postal_code);
         oled.println(buff);
       }
       else{
@@ -1341,14 +1342,14 @@ void handleNotFound() {
 //}
 
 bool get_error(String& error){
-  if (resp.payload_type != LOCATION_RQ && resp.payload_type != LOCATION_RQ_ADDR){
-      switch (resp.payload_type)
+  if (resp.payload_ext.payload.type != LOCATION_RQ && resp.payload_ext.payload.type != LOCATION_RQ_ADDR){
+      switch (resp.payload_ext.payload.type)
       {
-          case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
-          case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
-          case SERVER_ERROR: error = "SERVER_ERROR"; break;
+          //case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
+          //case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
+          //case SERVER_ERROR: error = "SERVER_ERROR"; break;
           case LOCATION_RQ_ERROR: error = "LOCATION_RQ_ERROR"; break;
-          case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
+          //case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
           case PROBE_REQUEST: error = "PROBE_REQUEST"; break;
           case DECODE_BIN_FAILED: error = "DECODE_BIN_FAILED"; break;
           case ENCODE_BIN_FAILED: error = "ENCODE_BIN_FAILED"; break;
@@ -1361,7 +1362,7 @@ bool get_error(String& error){
           case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
           case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;
           case CREATE_META_FAILED: error = "CREATE_META_FAILED"; break;
-          case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
+          //case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
       }
       return true;
   }

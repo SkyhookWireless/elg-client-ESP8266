@@ -17,7 +17,7 @@ typedef struct key_io {
     char k_str_out[BLOCK_SIZE];
 } key_io;
 
-void hmac(char *k, int k_len, char *m, unsigned char *ciph) {
+void hmac(char *k, int32_t k_len, char *m, uint8_t *ciph) {
     key_io keys;
     memcpy(&keys, k, BLOCK_SIZE);
 
@@ -31,23 +31,23 @@ void hmac(char *k, int k_len, char *m, unsigned char *ciph) {
     //Compiler differences will init memory differently and things WILL break.
     char strt_str[BLOCK_SIZE + MESSAGE_SIZE];
 
-    unsigned char in_ciph[BLOCK_SIZE];
-    sha((unsigned char *) memcpy(strt_str, m, MESSAGE_SIZE), in_ciph);
+    uint8_t in_ciph[BLOCK_SIZE];
+    sha((uint8_t *) memcpy(strt_str, m, MESSAGE_SIZE), in_ciph);
 
     char h_in[BLOCK_SIZE + MESSAGE_SIZE];
     memcpy(h_in, keys.k_str_out, BLOCK_SIZE);
     memcpy(h_in + BLOCK_SIZE, (char *) in_ciph, BLOCK_SIZE);
-    sha((unsigned char *) h_in, ciph);
+    sha((uint8_t *) h_in, ciph);
 }
 
 void pad_array_with(char pad, char *array, size_t sz) {
-    int i;
+    int32_t i;
     for (i = sz; i-- > 0;) {
         array[i] = array[i] ^ pad;
     }
 }
 
-void sha(unsigned char *clrtext, unsigned char ciph[]) {
+void sha(uint8_t *clrtext, uint8_t ciph[]) {
     SHA256_CTX ctx;
 
     hmac256_init(&ctx);
