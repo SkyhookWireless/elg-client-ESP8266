@@ -17,6 +17,7 @@
 #include "sky_crypt.h"
 #include "sky_protocol.h"
 #include "config.h"
+#include "sky_util.h"
 #include <math.h>
 #include <Wire.h>
 #include <LiFuelGauge.h>
@@ -57,10 +58,27 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
+void print_buff(uint8_t *buff, int32_t len) {
+    int32_t i;
+    int32_t j = 0;
+
+    char tmp[16];
+     for (int i=0; i<len; i++) { 
+       sprintf(tmp, "%02X",buff[i]); 
+       Serial.print(tmp); Serial.print(" ");
+       if (++j > 15) {
+            j = 0;
+            Serial.print("\n");
+        }
+     }
+     Serial.print("\n");
+}
+
 // globals for preferences
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
+uint8_t mac[WL_MAC_ADDR_LENGTH];
 
 // gloabls required for location request and response
 struct sky_key_t key = {USERID, AES_KEY};
@@ -424,7 +442,6 @@ class ClientWiFiWrapper{
   // access point array
   struct ap_t aps[MAX_AP_COUNT];
   // stores response
-  uint8_t buff[1024];
   unsigned long txTimer;
   unsigned long rxTimer;
   int check_time;
@@ -468,6 +485,9 @@ class ClientWiFiWrapper{
 
   // scans surrounding AP's and sends info to elg server
   void scan(){
+    uint8_t * buff = NULL;
+    SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
+
     int n = WiFi.scanNetworks();
     
     if (n > MAX_AP_COUNT){
@@ -486,7 +506,8 @@ class ClientWiFiWrapper{
       rq.key = key; // assign key
   
       // set mac address
-      WiFi.macAddress(rq.mac);
+      uint8_t * mac_ptr = mac;
+      rq.mac = mac_ptr;
   
       // set protocol version
       rq.header.version = SKY_PROTOCOL_VERSION;
@@ -499,23 +520,37 @@ class ClientWiFiWrapper{
       rq.aps = aps; // assign aps
       // in this demo we are not using cell, ble or gps
       // zero counts
+      uint8_t tmp_ip[4];
+      uint8_t * localip = tmp_ip;
+      localip[0] = WiFi.localIP()[0];
+      localip[1] = WiFi.localIP()[1];
+      localip[2] = WiFi.localIP()[2];
+      localip[3] = WiFi.localIP()[3];
       rq.ble_count = 0;
       rq.cell_count = 0;
       rq.gps_count = 0;
+      rq.ip_addr = localip;
+      rq.ip_type = DATA_TYPE_IPV4;
+      rq.ip_count = 1;
+      rq.mac_count = 1;
 
       Serial.println("\n########### Location Request ###########");
       Serial.println("Protocol: " + String(rq.header.version));
       Serial.println("Num APs: " + String(rq.ap_count));
-  
-      int cnt = sky_encode_req_bin(buff, sizeof(buff), &rq);
+      Serial.println(sizeof(buff));
+      int cnt = sky_encode_req_bin(buff, SKY_PROT_BUFF_LEN, &rq);
   
       if (cnt == -1){
           Serial.println("failed to encode request");
           return;
       }
+
+      Serial.println("ENCODING DONE");
   
       /* encrypt buffer, use hardware encryption when available */
-      int r = sky_aes_encrypt(buff + sizeof(sky_rq_header_t), cnt - sizeof(sky_rq_header_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv));
+      Serial.println(cnt);
+      Serial.println(cnt - sizeof(sky_rq_header_t));
+      int r = sky_aes_encrypt(buff + sizeof(sky_rq_header_t), cnt - sizeof(sky_rq_header_t) - sizeof(sky_checksum_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv));
   
       if (r == -1){
           Serial.println("failed to encrypt");
@@ -559,6 +594,8 @@ class ClientWiFiWrapper{
       Serial.println("########################################\n");
   }
   bool rx(){
+    uint8_t * buff = NULL;
+    SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
 
     int n = client.available();
     while(n = client.available()){
@@ -567,22 +604,26 @@ class ClientWiFiWrapper{
 
       
       // trim to buff size
-      if (n > sizeof(buff)){
-          n = sizeof(buff);
+      if (n > SKY_PROT_BUFF_LEN){
+          n = SKY_PROT_BUFF_LEN;
       }
       Serial.println("\n########### Location Response ###########");
+      //Serial.println(buff);
       n = client.read(buff, n);
       Serial.print("read bytes: ");
       Serial.println(n);
+
       memset(&resp.location_ext, 0, sizeof(resp.location_ext)); // clear the values
       resp.key = key; // assign decryption key
 
-      if (sky_aes_decrypt(buff + sizeof(sky_rq_header_t), n - sizeof(sky_rq_header_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv)) != 0){
+      if (sky_aes_decrypt(buff + sizeof(sky_rsp_header_t), n - sizeof(sky_rsp_header_t) - sizeof(sky_checksum_t), key.aes_key, buff + sizeof(sky_rsp_header_t) - sizeof(resp.header.iv)) != 0){
           Serial.println("failed to decrypt response");
           return false;
       }
 
-      int res = sky_decode_resp_bin(buff, sizeof(buff), n, &resp);
+      print_buff(buff, n);
+
+      int res = sky_decode_resp_bin(buff, SKY_PROT_BUFF_LEN, n, &resp);
 
       if (res == -1){
           Serial.println("failed to decode response");
@@ -599,7 +640,7 @@ class ClientWiFiWrapper{
   void print_location_resp(struct location_rsp_t *cr)
   {
     Serial.println();
-    Serial.print("timestamp: ");
+    Serial.println("timestamp: ");
     // TODO: TIMESTAM UINT8_T array to UINT64
 
     // uint64_t timestamp = cr->payload_ext.payload.timestamp; 
@@ -657,18 +698,18 @@ class ClientWiFiWrapper{
         }
     // }
 
-    if (cr->payload_ext.payload.type != LOCATION_RQ &&
-        cr->payload_ext.payload.type != LOCATION_RQ_ADDR) return;
+    if (cr->payload_ext.payload.type != LOCATION_RQ_SUCCESS &&
+        cr->payload_ext.payload.type != LOCATION_RQ_ADDR_SUCCESS) return;
 
-    Serial.println("LOCATION_RQ");
+    Serial.println("LOCATION_RQ_SUCCESS");
     Serial.print("latitude: "); Serial.println(cr->location.lat, 6);
     Serial.print("longitude: "); Serial.println(cr->location.lon, 6);
     Serial.print("hpe: "); Serial.println(cr->location.hpe);
+    Serial.print("distance_to_point: "); Serial.println(cr->location.distance_to_point);
     
-    if (cr->payload_ext.payload.type == LOCATION_RQ_ADDR)
+    if (cr->payload_ext.payload.type == LOCATION_RQ_ADDR_SUCCESS)
     {
-        Serial.println("LOCATION_RQ_ADDR");
-        Serial.print("distance_to_point: "); Serial.println(cr->location.distance_to_point);
+        Serial.println("LOCATION_RQ_ADDR_SUCCESS");
         Serial.print("street num: "); print_s(cr->location_ext.street_num, cr->location_ext.street_num_len);
         Serial.print("address: "); print_s(cr->location_ext.address, cr->location_ext.address_len);
         Serial.print("city: "); print_s(cr->location_ext.city, cr->location_ext.city_len);
@@ -883,8 +924,6 @@ void setup() {
   oled.refreshIcons();
   // crashes without this, unsure why
   yield();
-
-  uint8_t mac[WL_MAC_ADDR_LENGTH];
 
   // station mode allows both client and AP mode
   Serial.println();
