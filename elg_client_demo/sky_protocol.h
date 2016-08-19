@@ -14,9 +14,9 @@ extern "C" {
 
 #include <assert.h>
 #include <inttypes.h>
-//#include <netinet/in.h>   // remove if not existing, "struct relay_t" will become useless.
-//#include <endian.h>       // remove if not existing
-//#include <byteswap.h>     // remove if not existing
+// #include <netinet/in.h>   // remove if not existing, "struct relay_t" will become useless.
+// #include <endian.h>       // remove if not existing
+// #include <byteswap.h>     // remove if not existing
 
 #define SKY_PROTOCOL_VERSION    1
 
@@ -456,15 +456,6 @@ struct location_rq_t {
     // http server settings
     char *http_url;
     char *http_uri;
-
-    //
-    // reserved for elg server use
-    //
-
-    struct gsm_t *gsm;
-    struct cdma_t *cdma;
-    struct lte_t *lte;
-    struct umts_t *umts;
 };
 
 struct location_rsp_t {

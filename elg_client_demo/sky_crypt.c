@@ -4,15 +4,13 @@
  * Company: Skyhook Wireless
  *
  ************************************************/
-
-#include "mauth.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "aes.h"
 #include "sky_crypt.h"
-#include <Arduino.h>
+#include "mauth.h"
+#include "aes.h"
 
 // iv must be 16 byte long
 void sky_gen_iv(uint8_t *iv) {
@@ -25,6 +23,7 @@ void sky_gen_iv(uint8_t *iv) {
     for (i = 0; i < MESSAGE_SIZE; i++) {
         mes[i] = rand() % 256;
     }
+
     unsigned char iv__[HMAC_SIZE];
     memset(iv__, 0, HMAC_SIZE);
     hmac(key, KEY_SIZE, mes, iv__);
@@ -35,7 +34,7 @@ void sky_gen_iv(uint8_t *iv) {
 int32_t sky_aes_encrypt(uint8_t *data, uint32_t data_len, uint8_t *key,
         uint8_t *iv) {
     if (data_len & 0x0F) {
-        Serial.println("Data length (in bytes) must be a multiple of 16");
+        //perror("Data length (in bytes) must be a multiple of 16");
         return -1;
     }
 
@@ -49,7 +48,7 @@ int32_t sky_aes_encrypt(uint8_t *data, uint32_t data_len, uint8_t *key,
 int32_t sky_aes_decrypt(uint8_t *data, uint32_t data_len, uint8_t *key,
         uint8_t *iv) {
     if (data_len & 0x0F) {
-        Serial.println("non 16 byte blocks");
+        //perror("non 16 byte blocks");
         return -1;
     }
 

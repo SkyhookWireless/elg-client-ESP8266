@@ -13,7 +13,6 @@
 #include "sky_crypt.h"
 #include "sky_protocol.h"
 #include "sky_util.h"
-#include <Arduino.h>
 
 // Return the number to add to become a multiple of 16.
 inline
@@ -128,7 +127,7 @@ void sky_location_endian_swap(struct location_t * p) {
 inline
 bool sky_get_header(const uint8_t * buff, uint32_t buff_len, uint8_t * p_header, uint32_t header_len) {
     if (buff_len < header_len) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
     memcpy(p_header, buff, header_len);
@@ -144,7 +143,7 @@ inline
 bool sky_get_payload(const uint8_t * buff, uint32_t buff_len, uint8_t header_len,
         sky_payload_ext_t * p_payload_ex, uint16_t payload_len) {
     if (buff_len < header_len + payload_len) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
     memcpy(&p_payload_ex->payload, buff + header_len, sizeof(sky_payload_t));
@@ -157,7 +156,7 @@ bool sky_get_payload(const uint8_t * buff, uint32_t buff_len, uint8_t header_len
 inline
 bool sky_verify_checksum(const uint8_t * buff, uint32_t buff_len, uint8_t header_len, uint16_t payload_len) {
     if (buff_len < header_len + payload_len + sizeof(sky_checksum_t)) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
     sky_checksum_t cs = *(sky_checksum_t *)(buff + header_len + payload_len); // little endianness
@@ -165,7 +164,7 @@ bool sky_verify_checksum(const uint8_t * buff, uint32_t buff_len, uint8_t header
     if (cs == fletcher16(buff, header_len + payload_len))
         return 1;
     else {
-        Serial.println("invalid checksum");
+        //perror("invalid checksum");
         return true;
     }
 }
@@ -174,7 +173,7 @@ bool sky_verify_checksum(const uint8_t * buff, uint32_t buff_len, uint8_t header
 inline
 bool sky_set_header(uint8_t * buff, uint32_t buff_len, uint8_t * p_header, uint32_t header_len) {
     if (buff_len < header_len) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
 #ifdef __BIG_ENDIAN__
@@ -191,7 +190,7 @@ inline
 bool sky_set_payload(uint8_t * buff, uint32_t buff_len, uint8_t header_len,
         sky_payload_ext_t * p_payload_ex, uint16_t payload_len) {
     if (buff_len < header_len + payload_len) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
     memcpy(buff + header_len, &p_payload_ex->payload, sizeof(sky_payload_t));
@@ -204,7 +203,7 @@ bool sky_set_payload(uint8_t * buff, uint32_t buff_len, uint8_t header_len,
 inline
 bool sky_set_checksum(uint8_t * buff, uint32_t buff_len, uint8_t header_len, uint16_t payload_len) {
     if (buff_len < header_len + payload_len + sizeof(sky_checksum_t)) {
-        Serial.println("buffer too small");
+        //perror("buffer too small");
         return false;
     }
     sky_checksum_t cs = fletcher16(buff, header_len + payload_len);
@@ -297,36 +296,36 @@ int32_t sky_decode_req_bin(uint8_t *buff, uint32_t buff_len, uint32_t data_len,
             creq->cell_count = p_entry_ex->entry->data_type_count;
             creq->cell_type = DATA_TYPE_GSM;
             sz = sizeof(struct gsm_t) * p_entry_ex->entry->data_type_count;
-            creq->gsm = (struct gsm_t *)p_entry_ex->data;
+            creq->cell = (union cell_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
-            sky_gsm_endian_swap(creq->gsm);
+            sky_gsm_endian_swap(&creq->cell->gsm);
 #endif
             break;
         case DATA_TYPE_CDMA:
             creq->cell_count = p_entry_ex->entry->data_type_count;
             creq->cell_type = DATA_TYPE_CDMA;
             sz = sizeof(struct cdma_t) * p_entry_ex->entry->data_type_count;
-            creq->cdma = (struct cdma_t *)p_entry_ex->data;
+            creq->cell = (union cell_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
-            sky_cdma_endian_swap(creq->cdma);
+            sky_cdma_endian_swap(&creq->cell->cdma);
 #endif
             break;
         case DATA_TYPE_UMTS:
             creq->cell_count = p_entry_ex->entry->data_type_count;
             creq->cell_type = DATA_TYPE_UMTS;
             sz = sizeof(struct umts_t) * p_entry_ex->entry->data_type_count;
-            creq->umts = (struct umts_t *)p_entry_ex->data;
+            creq->cell = (union cell_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
-            sky_umts_endian_swap(creq->umts);
+            sky_umts_endian_swap(&creq->cell->umts);
 #endif
             break;
         case DATA_TYPE_LTE:
             creq->cell_count = p_entry_ex->entry->data_type_count;
             creq->cell_type = DATA_TYPE_LTE;
             sz = sizeof(struct lte_t) * p_entry_ex->entry->data_type_count;
-            creq->lte = (struct lte_t *)p_entry_ex->data;
+            creq->cell = (union cell_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
-            sky_lte_endian_swap(creq->lte);
+            sky_lte_endian_swap(&creq->cell->lte);
 #endif
             break;
         case DATA_TYPE_GPS:
@@ -340,7 +339,7 @@ int32_t sky_decode_req_bin(uint8_t *buff, uint32_t buff_len, uint32_t data_len,
         case DATA_TYPE_PAD:
             return 0; // success
         default:
-            Serial.println("unknown data type");
+            //perror("unknown data type");
             return -1;
         }
         payload_offset += sizeof(sky_entry_t) + sz;
@@ -531,13 +530,16 @@ int32_t sky_encode_resp_bin(uint8_t *buff, uint32_t buff_len, struct location_rs
 /* encodes the request struct into binary formatted packet sent to server */
 // returns the packet len or -1 when fails
 int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_t *creq) {
+
     if (creq->payload_ext.payload.type != LOCATION_RQ
             && creq->payload_ext.payload.type != LOCATION_RQ_ADDR) {
         //fprintf(stderr, "sky_encode_req_bin: unknown payload type %d\n", creq->payload_ext.payload.type);
         return -1;
     }
+
     uint32_t payload_length = sizeof(sky_payload_t);
     payload_length += sizeof(sky_entry_t) + MAC_SIZE + sizeof(sky_entry_t) + IPV4_SIZE;
+
     uint8_t acnt = creq->ap_count;
     uint8_t bcnt = creq->ble_count;
     uint8_t ccnt = creq->cell_count;
@@ -564,7 +566,7 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
             sz = sizeof(struct lte_t);
             break;
         default:
-            Serial.println("unknown data type");
+            //perror("unknown data type");
             return -1;
         }
         payload_length += ccnt * sz + sizeof(sky_entry_t);
@@ -583,6 +585,7 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
 
     if (!sky_set_payload(buff, buff_len, sizeof(sky_rq_header_t), &creq->payload_ext, creq->header.payload_length))
         return -1;
+
     // fill in data entries in buffer
     sky_entry_ext_t * p_entry_ex = &creq->payload_ext.data_entry;
     uint32_t sz = 0;
@@ -655,7 +658,7 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
             memcpy(p_entry_ex->data, &creq->cell->umts, sz);
             break;
         default:
-            Serial.println("unknown data type");
+            //perror("unknown data type");
             return -1;
         }
         adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
@@ -677,8 +680,10 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
         uint8_t * pad_bytes = p_entry_ex->data - sizeof(sky_entry_t);
         memset(pad_bytes, DATA_TYPE_PAD, pad_len);
     }
+
     if (!sky_set_checksum(buff, buff_len, (uint8_t)sizeof(creq->header), creq->header.payload_length))
         return -1;
+
     return sizeof(sky_rq_header_t) + creq->header.payload_length + sizeof(sky_checksum_t);
 }
 
@@ -774,7 +779,7 @@ int32_t sky_decode_resp_bin(uint8_t *buff, uint32_t buff_len, uint32_t data_len,
         case DATA_TYPE_PAD:
             return 0; // success
         default:
-            Serial.println("unknown data type");
+            //perror("unknown data type");
             return -1;
         }
         payload_offset += sizeof(sky_entry_t) + p_entry_ex->entry->data_type_count;
