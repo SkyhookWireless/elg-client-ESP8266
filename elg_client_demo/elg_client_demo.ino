@@ -78,7 +78,6 @@ void print_buff(uint8_t *buff, int32_t len) {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
-uint8_t mac[WL_MAC_ADDR_LENGTH];
 
 // gloabls required for location request and response
 struct sky_key_t key = {USERID, AES_KEY};
@@ -506,11 +505,14 @@ class ClientWiFiWrapper{
       rq.key = key; // assign key
   
       // set mac address
-      uint8_t * mac_ptr = mac;
-      rq.mac = mac_ptr;
+      uint8_t mac[WL_MAC_ADDR_LENGTH];
+      rq.mac = mac;
+      WiFi.macAddress(rq.mac);
   
       // set protocol version
       rq.header.version = SKY_PROTOCOL_VERSION;
+
+      rq.payload_ext.payload.sw_version = 1;
   
       //rq.payload_ext.payload.type = LOCATION_RQ; // simple location request
       rq.payload_ext.payload.type = LOCATION_RQ_ADDR; // full address lookup
@@ -535,6 +537,7 @@ class ClientWiFiWrapper{
       rq.mac_count = 1;
 
       Serial.println("\n########### Location Request ###########");
+
       Serial.println("Protocol: " + String(rq.header.version));
       Serial.println("Num APs: " + String(rq.ap_count));
       Serial.println(sizeof(buff));
@@ -549,6 +552,7 @@ class ClientWiFiWrapper{
   
       /* encrypt buffer, use hardware encryption when available */
       Serial.println(cnt);
+      print_buff(buff, cnt);
       Serial.println(cnt - sizeof(sky_rq_header_t));
       int r = sky_aes_encrypt(buff + sizeof(sky_rq_header_t), cnt - sizeof(sky_rq_header_t) - sizeof(sky_checksum_t), key.aes_key, buff + sizeof(sky_rq_header_t) - sizeof(rq.header.iv));
   
@@ -922,6 +926,8 @@ void setup() {
   oled.clearDisplay();
   oled.setConnected(INITIAL_STARTUP_STATE);
   oled.refreshIcons();
+  uint8_t mac[WL_MAC_ADDR_LENGTH];
+  WiFi.macAddress(mac);
   // crashes without this, unsure why
   yield();
 
