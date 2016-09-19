@@ -1,6 +1,3 @@
-[submodule "ELG-Client2"]
-	path = ELG-Client2
-	url = git@github.com:SkyhookWireless/ELG-Client2.git
-[submodule "elg_client_demo/ELG-Common"]
-	path = elg_client_demo/ELG-Common
+[submodule "elg_client_demo/common"]
+	path = elg_client_demo/common
 	url = git@github.com:SkyhookWireless/ELG-Common.git

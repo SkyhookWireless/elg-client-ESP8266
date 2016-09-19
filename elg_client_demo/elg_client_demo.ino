@@ -681,24 +681,14 @@ class ClientWiFiWrapper{
     // {
         switch (cr->payload_ext.payload.type)
         {
-            //case PAYLOAD_ERROR: Serial.println("PAYLOAD_ERROR"); break;
-            //case PAYLOAD_API_ERROR: Serial.println("PAYLOAD_API_ERROR"); break;
-            //case SERVER_ERROR: Serial.println("SERVER_ERROR"); break;
+            case LOCATION_RQ_SUCCESS: Serial.println("LOCATION_RQ_SUCCESS"); break;
+            case LOCATION_RQ_ADDR_SUCCESS: Serial.println("LOCATION_RQ_ADDR_SUCCESS"); break;
+            case PROBE_REQUEST_SUCCESS: Serial.println("PROBE_REQUEST_SUCCESS"); break;
             case LOCATION_RQ_ERROR: Serial.println("LOCATION_RQ_ERROR"); break;
-            //case PAYLOAD_NONE: Serial.println("PAYLOAD_NONE"); break;
-            case PROBE_REQUEST: Serial.println("PROBE_REQUEST"); break;
-            case DECODE_BIN_FAILED: Serial.println("DECODE_BIN_FAILED"); break;
-            case ENCODE_BIN_FAILED: Serial.println("ENCODE_BIN_FAILED"); break;
-            case DECRYPT_BIN_FAILED: Serial.println("DECRYPT_BIN_FAILED"); break;
-            case ENCRYPT_BIN_FAILED: Serial.println("ENCRYPT_BIN_FAILED"); break;
-            case ENCODE_XML_FAILED: Serial.println("ENCODE_XML_FAILED"); break;
-            case DECODE_XML_FAILED: Serial.println("DECODE_XML_FAILED"); break;
-            case SOCKET_OPEN_FAILED: Serial.println("SOCKET_FAILED "); break;
-            case SOCKET_WRITE_FAILED: Serial.println("SOCKET_WRITE_FAILED"); break;
-            case SOCKET_READ_FAILED: Serial.println("SOCKET_READ_FAILED"); break;
-            case SOCKET_TIMEOUT_FAILED: Serial.println("SOCKET_TIMEOUT_FAILED"); break;
-            case CREATE_META_FAILED: Serial.println("CREATE_META_FAILED"); break;
-            //case HTTP_UNKNOWN: Serial.println("HTTP_UNKNOWN"); break;
+            case LOCATION_GATEWAY_ERROR: Serial.println("LOCATION_GATEWAY_ERROR"); break;
+            case LOCATION_API_ERROR: Serial.println("LOCATION_API_ERROR"); break;
+            case LOCATION_UNKNOWN: Serial.println("LOCATION_UNKNOWN"); break;
+            case LOCATION_UNABLE_TO_DETERMINE: Serial.println("LOCATION_UNABLE_TO_DETERMINE"); break;
         }
     // }
 
@@ -1390,24 +1380,14 @@ bool get_error(String& error){
   if (resp.payload_ext.payload.type != LOCATION_RQ && resp.payload_ext.payload.type != LOCATION_RQ_ADDR){
       switch (resp.payload_ext.payload.type)
       {
-          //case PAYLOAD_ERROR: error = "PAYLOAD_ERROR"; break;
-          //case PAYLOAD_API_ERROR: error = "PAYLOAD_API_ERROR"; break;
-          //case SERVER_ERROR: error = "SERVER_ERROR"; break;
-          case LOCATION_RQ_ERROR: error = "LOCATION_RQ_ERROR"; break;
-          //case PAYLOAD_NONE: error = "PAYLOAD_NONE"; break;
-          case PROBE_REQUEST: error = "PROBE_REQUEST"; break;
-          case DECODE_BIN_FAILED: error = "DECODE_BIN_FAILED"; break;
-          case ENCODE_BIN_FAILED: error = "ENCODE_BIN_FAILED"; break;
-          case DECRYPT_BIN_FAILED: error = "DECRYPT_BIN_FAILED"; break;
-          case ENCRYPT_BIN_FAILED: error = "ENCRYPT_BIN_FAILED"; break;
-          case ENCODE_XML_FAILED: error = "ENCODE_XML_FAILED"; break;
-          case DECODE_XML_FAILED: error = "DECODE_XML_FAILED"; break;
-          case SOCKET_OPEN_FAILED: error = "SOCKET_FAILED "; break;
-          case SOCKET_WRITE_FAILED: error = "SOCKET_WRITE_FAILED"; break;
-          case SOCKET_READ_FAILED: error = "SOCKET_READ_FAILED"; break;
-          case SOCKET_TIMEOUT_FAILED: error = "SOCKET_TIMEOUT_FAILED"; break;
-          case CREATE_META_FAILED: error = "CREATE_META_FAILED"; break;
-          //case HTTP_UNKNOWN: error = "HTTP_UNKNOWN"; break;
+            case LOCATION_RQ_SUCCESS: Serial.println("LOCATION_RQ_SUCCESS"); break;
+            case LOCATION_RQ_ADDR_SUCCESS: Serial.println("LOCATION_RQ_ADDR_SUCCESS"); break;
+            case PROBE_REQUEST_SUCCESS: Serial.println("PROBE_REQUEST_SUCCESS"); break;
+            case LOCATION_RQ_ERROR: Serial.println("LOCATION_RQ_ERROR"); break;
+            case LOCATION_GATEWAY_ERROR: Serial.println("LOCATION_GATEWAY_ERROR"); break;
+            case LOCATION_API_ERROR: Serial.println("LOCATION_API_ERROR"); break;
+            case LOCATION_UNKNOWN: Serial.println("LOCATION_UNKNOWN"); break;
+            case LOCATION_UNABLE_TO_DETERMINE: Serial.println("LOCATION_UNABLE_TO_DETERMINE"); break;
       }
       return true;
   }

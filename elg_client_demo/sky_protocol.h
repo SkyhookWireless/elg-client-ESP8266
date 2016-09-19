@@ -12,35 +12,43 @@ extern "C" {
 #ifndef SKY_PROTOCOL_H
 #define SKY_PROTOCOL_H
 
+#include <stdbool.h>
 #include <assert.h>
 #include <inttypes.h>
-// #include <netinet/in.h>   // remove if not existing, "struct relay_t" will become useless.
-// #include <endian.h>       // remove if not existing
-// #include <byteswap.h>     // remove if not existing
 
 #define SKY_PROTOCOL_VERSION    1
+
+#define URL_SIZE                512
 
 #define MAC_SIZE                6
 #define IPV4_SIZE               4
 #define IPV6_SIZE               16
 
-#define MAX_AP                  100
-#define MAX_GPS                 2
-#define MAX_CELL                7
-#define MAX_BLE                 5
+#define MAX_MACS                2   // max # of mac addresses
+#define MAX_IPS                 2   // max # of ip addresses
 
+#define MAX_APS                 100 // max # of access points
+#define MAX_GPSS                2   // max # of gps
+#define MAX_CELLS               7   // max # of cells
+#define MAX_BLES                5   // max # of blue tooth
+
+// max # of bytes for request buffer
 #define SKY_PROT_RQ_BUFF_LEN                                                 \
     sizeof(sky_rq_header_t) + sizeof(sky_payload_t) + sizeof(sky_checksum_t) \
-    + MAX_AP * (sizeof(sky_entry_t) + sizeof(struct ap_t))                   \
-    + MAX_GPS * (sizeof(sky_entry_t) + sizeof(struct gps_t))                 \
-    + MAX_CELL * (sizeof(sky_entry_t) + sizeof(union cell_t))                \
-    + MAX_BLE * (sizeof(sky_entry_t) + sizeof(struct ble_t))
+    + (sizeof(sky_entry_t) + MAX_MACS * MAC_SIZE)                            \
+    + (sizeof(sky_entry_t) + MAX_IPS * IPV6_SIZE)                            \
+    + (sizeof(sky_entry_t) + MAX_APS * sizeof(struct ap_t))                  \
+    + (sizeof(sky_entry_t) + MAX_GPSS * sizeof(struct gps_t))                \
+    + (sizeof(sky_entry_t) + MAX_CELLS * sizeof(union cell_t))               \
+    + (sizeof(sky_entry_t) + MAX_BLES * sizeof(struct ble_t))
 
+// max # of bytes for response buffer
 #define SKY_PROT_RSP_BUFF_LEN                                                 \
     sizeof(sky_rsp_header_t) + sizeof(sky_payload_t) + sizeof(sky_checksum_t) \
     + sizeof(struct location_t) + sizeof(struct location_ext_t)               \
     + 1024 // the char array of full address
 
+// max # of bytes for both request and response buffer
 #define SKY_PROT_BUFF_LEN                                                     \
                             ((SKY_PROT_RQ_BUFF_LEN > SKY_PROT_RSP_BUFF_LEN) ? \
                             SKY_PROT_RQ_BUFF_LEN : SKY_PROT_RSP_BUFF_LEN)
@@ -130,7 +138,7 @@ enum SKY_DATA_TYPE {
     DATA_TYPE_MAC,          // device MAC address
 };
 
-/* request payload types */
+// request payload types
 enum SKY_RQ_PAYLOAD_TYPE {
     REQ_PAYLOAD_TYPE_NONE = 0,  // initialization value
 
@@ -139,19 +147,24 @@ enum SKY_RQ_PAYLOAD_TYPE {
     PROBE_REQUEST,              // probe test
 };
 
-/* response payload types */
+// response payload types
 enum SKY_RSP_PAYLOAD_TYPE {
     RSP_PAYLOAD_TYPE_NONE = 0,  // initialization value
 
-    /* success code */
-    LOCATION_RQ_SUCCESS,
-    LOCATION_RQ_ADDR_SUCCESS,
-    PROBE_REQUEST_SUCCESS,
+    // success codes
+    LOCATION_RQ_SUCCESS,        // lat+lon success
+    LOCATION_RQ_ADDR_SUCCESS,   // full address success
+    PROBE_REQUEST_SUCCESS,      // probe success
 
-    /* error code */
-    LOCATION_RQ_ERROR = 100,
-    LOCATION_GATEWAY_ERROR,
-    LOCATION_API_ERROR,
+    // error codes
+    LOCATION_RQ_ERROR = 10,      // client domain errors
+    LOCATION_GATEWAY_ERROR,      // elg server domain errors
+    LOCATION_API_ERROR,          // api server domain errors
+    LOCATION_UNKNOWN,            // do not know which domain errors
+
+    // detailed client domain error codes
+    LOCATION_UNABLE_TO_DETERMINE = 20,// api-server is unable to determine the client
+                                      // location by the given client data.
 };
 
 // internal error codes
@@ -160,7 +173,8 @@ enum SKY_STATUS {
     ZLOG_INIT_PERM,
     ZLOG_INIT_ERR,
     LOAD_CONFIG_FAILED,
-    HOST_UNKNOWN,
+    API_URL_UNKNOWN,
+    RELAY_URL_UNKNOWN,
     LOAD_KEYS_FAILED,
     BAD_KEY,
     CREATE_THREAD_FAILED,
@@ -171,7 +185,6 @@ enum SKY_STATUS {
     SOCKET_LISTEN_FAILED,
     SOCKET_ACCEPT_FAILED,
     SOCKET_RECV_FAILED,
-    SOCKET_READ_FAILED,
     SOCKET_WRITE_FAILED,
     SOCKET_TIMEOUT_FAILED,
     MSG_TOO_SHORT,
@@ -185,6 +198,8 @@ enum SKY_STATUS {
     ENCRYPT_BIN_FAILED,
     DECODE_XML_FAILED,
     CREATE_META_FAILED,
+    ARRAY_SIZE_TOO_SMALL,
+    ERROR_XML_MSG,
 
     /* HTTP response codes >= 100 */
     /* http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html */
@@ -236,17 +251,24 @@ typedef struct {
 
 typedef uint16_t sky_checksum_t;
 
+// enum values to set struct ap_t::flag.
+enum SKY_BAND {
+    BAND_2_4G = 0,
+    BAND_5G,
+};
+
 //
 // protocol payload data entry data types
 // location request
 // Note: all data types are explicitly padded for 32-bit alignment.
 //
 
-/* WARNING
- it is important to keep the order
- the larger size vars first in the structs
- because the compiler pads the struct to align
- to the largest size */
+/* WARNING:
+ * it is important to keep the order
+ * the larger size vars first in the structs
+ * because the compiler pads the struct to align
+ * to the largest size
+ */
 
 // access point
 // Note: Padding bytes will be appended at the end of the very last "struct ap_t",
@@ -254,6 +276,13 @@ typedef uint16_t sky_checksum_t;
 struct ap_t {
     uint8_t MAC[6];
     int8_t rssi;
+    uint8_t flag; // bit fields:
+                  // bit 0: 1 if the device is currently connected to this AP. 0 otherwise.
+                  // bits 1-3: Band indicator. Allowable values:
+                  //                                             0: 2.4 GHz
+                  //                                             1: 5 GHz
+                  //                                             2-7: Reserved
+                  // bits 4-7: Reserved
 };
 
 // http://wiki.opencellid.org/wiki/API
@@ -309,13 +338,14 @@ union cell_t {
 struct gps_t {
     double lat;
     double lon;
+    float hdop;
     float alt; // altitude
     float hpe;
     float speed;
     uint32_t age; // last seen in ms
     uint8_t nsat;
     uint8_t fix;
-    uint8_t unused[6]; // padding bytes
+    uint8_t unused[2]; // padding bytes
 };
 
 // blue tooth
@@ -395,13 +425,14 @@ struct location_ext_t {
 // client application data types
 //
 
-#ifndef _NETINET_IN_H // defined in <netinet/in.h>
-    struct sockaddr_in {}; // syntactic sugar to allow "struct relay_t".
-#endif
+struct sky_srv_t {
+    char host[URL_SIZE];
+    uint16_t port;
+};
 
 // relay setting for echoing the location results
-struct relay_t {
-    struct sockaddr_in host;
+struct sky_relay_t {
+    struct sky_srv_t srv;
     uint8_t valid;
 };
 
@@ -410,7 +441,7 @@ struct sky_key_t {
     uint32_t userid;
     uint8_t aes_key[16];  // 128 bit aes key
     char keyid[128];      // api key
-    struct relay_t relay; // relay responses
+    struct sky_relay_t relay; // relay responses
 };
 
 struct location_rq_t {
@@ -567,6 +598,12 @@ struct location_rsp_t {
  n - 2 verify 0 fletcher 16
  n - 1 verify 1 fletcher 16
  *************************************************/
+
+// set the flag of an access point to claim the device is currently connected
+void sky_set_ap_connected(struct ap_t* ap, bool is_connected);
+
+// set the flag of an access point for the bandwidth
+void sky_set_ap_band(struct ap_t* ap, enum SKY_BAND band);
 
 // find aes key  based on userid in key root and set it
 //int sky_set_key(void *key_root, struct location_head_t *head);
