@@ -799,8 +799,8 @@ class ClientWiFiWrapper{
     }
     else{
       oled.clearMsgArea();
-      device.handle();
       print_to_oled("Wifi Disconnected","");
+      device.handle();
     }
   }
 
