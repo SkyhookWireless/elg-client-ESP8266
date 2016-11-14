@@ -21,6 +21,7 @@ extern "C" {
 #define SKY_PROTOCOL_VERSION    1
 
 #define URL_SIZE                512
+#define AUTH_SIZE               512
 
 #define MAC_SIZE                6
 #define IPV4_SIZE               4
@@ -255,7 +256,8 @@ typedef uint16_t sky_checksum_t;
 
 // enum values to set struct ap_t::flag.
 enum SKY_BAND {
-    BAND_2_4G = 0,
+    BAND_UNKNOWN = 0,
+    BAND_2_4G,
     BAND_5G,
 };
 
@@ -281,9 +283,10 @@ struct ap_t {
     uint8_t flag; // bit fields:
                   // bit 0: 1 if the device is currently connected to this AP. 0 otherwise.
                   // bits 1-3: Band indicator. Allowable values:
-                  //                                             0: 2.4 GHz
-                  //                                             1: 5 GHz
-                  //                                             2-7: Reserved
+                  //                                             0: unknown
+                  //                                             1: 2.4 GHz
+                  //                                             2: 5 GHz
+                  //                                             3-7: Reserved
                   // bits 4-7: Reserved
 };
 
@@ -428,8 +431,8 @@ struct location_ext_t {
 //
 
 struct sky_srv_t {
-    char host[URL_SIZE];
-    uint16_t port;
+    char url[URL_SIZE];
+    char cred[AUTH_SIZE];
 };
 
 // relay setting for echoing the location results
@@ -471,9 +474,26 @@ struct location_rq_t {
     struct ble_t *bles;
 
     // cell
-    uint8_t cell_count;
-    uint8_t cell_type;
-    union cell_t *cell; // gsm, cdma, lte and umts
+    // note: *DEPRECATED*, please use gsm, cdma, lte, and umts which are defined below.
+    uint8_t cell_count; // deprecated, use gsm, cdma, lte and umts instead
+    uint8_t cell_type;  // deprecated, use gsm, cdma, lte and umts instead
+    union cell_t *cell; // deprecated, use gsm, cdma, lte and umts instead
+
+    // gsm
+    uint8_t gsm_count;
+    struct gsm_t *gsms;
+
+    // cdma
+    uint8_t cdma_count;
+    struct cdma_t *cdmas;
+
+    // lte
+    uint8_t lte_count;
+    struct lte_t *ltes;
+
+    // umts
+    uint8_t umts_count;
+    struct umts_t *umtss;
 
     // gps
     uint8_t gps_count;
@@ -606,6 +626,9 @@ void sky_set_ap_connected(struct ap_t* ap, bool is_connected);
 
 // set the flag of an access point for the bandwidth
 void sky_set_ap_band(struct ap_t* ap, enum SKY_BAND band);
+
+// initialize the attributes of GPS to default or invalid values
+void sky_init_gps_attrib(struct gps_t * gps);
 
 // find aes key  based on userid in key root and set it
 //int sky_set_key(void *key_root, struct location_head_t *head);

@@ -9,27 +9,48 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <float.h>
 #include "sky_crypt.h"
 #include "sky_protocol.h"
 #include "sky_util.h"
 
 // set the flag of an access point to claim the device is currently connected
+inline
 void sky_set_ap_connected(struct ap_t* ap, bool is_connected) {
     ap->flag |= 1; // set bit 0
 }
 
 // set the flag of an access point for the bandwidth
+inline
 void sky_set_ap_band(struct ap_t* ap, enum SKY_BAND band) {
     switch (band) {
+    case BAND_UNKNOWN:
+        break;
     case BAND_2_4G:
+        ap->flag |= 1 << 1; // set bit 1
         break;
     case BAND_5G:
-        ap->flag |= 1 << 1; // set bit 1
+        ap->flag |= 1 << 2; // set bit 2
         break;
     default:
         //perror("undefined SKY_BAND");
         break;
     }
+}
+
+// initialize the attributes of GPS to default or invalid values
+inline
+void sky_init_gps_attrib(struct gps_t * gps) {
+    gps->nsat = 0; // default
+    gps->fix = 1;  // default
+    gps->age = UINT_MAX; // invalid
+    gps->alt = FLT_MAX;  // invalid
+    gps->hdop = -1;      // invalid
+    gps->hpe = -1;       // invalid
+    gps->lat = DBL_MAX;  // invalid
+    gps->lon = DBL_MAX;  // invalid
+    gps->speed = -1;     // invalid
 }
 
 // Return the number to add to become a multiple of 16.
@@ -346,37 +367,33 @@ int32_t sky_decode_req_bin(uint8_t *buff, uint32_t buff_len, uint32_t data_len,
 #endif
             break;
         case DATA_TYPE_GSM:
-            creq->cell_count = p_entry_ex->entry->data_type_count;
-            creq->cell_type = DATA_TYPE_GSM;
+            creq->gsm_count = p_entry_ex->entry->data_type_count;
             sz = sizeof(struct gsm_t) * p_entry_ex->entry->data_type_count;
-            creq->cell = (union cell_t *)p_entry_ex->data;
+            creq->gsms = (struct gsm_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
             sky_gsm_endian_swap(&creq->cell->gsm);
 #endif
             break;
         case DATA_TYPE_CDMA:
-            creq->cell_count = p_entry_ex->entry->data_type_count;
-            creq->cell_type = DATA_TYPE_CDMA;
+            creq->cdma_count = p_entry_ex->entry->data_type_count;
             sz = sizeof(struct cdma_t) * p_entry_ex->entry->data_type_count;
-            creq->cell = (union cell_t *)p_entry_ex->data;
+            creq->cdmas = (struct cdma_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
             sky_cdma_endian_swap(&creq->cell->cdma);
 #endif
             break;
         case DATA_TYPE_UMTS:
-            creq->cell_count = p_entry_ex->entry->data_type_count;
-            creq->cell_type = DATA_TYPE_UMTS;
+            creq->umts_count = p_entry_ex->entry->data_type_count;
             sz = sizeof(struct umts_t) * p_entry_ex->entry->data_type_count;
-            creq->cell = (union cell_t *)p_entry_ex->data;
+            creq->umtss = (struct umts_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
-            sky_umts_endian_swap(&creq->cell->umts);
+            sky_umts_endian_swap(&creq->cell->umtss);
 #endif
             break;
         case DATA_TYPE_LTE:
-            creq->cell_count = p_entry_ex->entry->data_type_count;
-            creq->cell_type = DATA_TYPE_LTE;
+            creq->lte_count = p_entry_ex->entry->data_type_count;
             sz = sizeof(struct lte_t) * p_entry_ex->entry->data_type_count;
-            creq->cell = (union cell_t *)p_entry_ex->data;
+            creq->ltes = (struct lte_t *)p_entry_ex->data;
 #ifdef __BIG_ENDIAN__
             sky_lte_endian_swap(&creq->cell->lte);
 #endif
@@ -592,6 +609,11 @@ int32_t sky_encode_resp_bin(uint8_t *buff, uint32_t buff_len, struct location_rs
 // returns the packet len or -1 when fails
 int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_t *creq) {
 
+    if (creq->cell_count &&
+            (creq->gsm_count || creq->cdma_count || creq->umts_count || creq->lte_count)) {
+        //perror("struct location_rq_t: use cell_t or gsm_t|cdma_t|umts_t|lte_t, but not both");
+        return -1;
+    }
     if (!check_rq_max_counts(creq))
         return -1;
 
@@ -633,6 +655,18 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
             return -1;
         }
         payload_length += creq->cell_count * sz + sizeof(sky_entry_t);
+    }
+    if (creq->gsm_count > 0) {
+        payload_length += sizeof(sky_entry_t) + creq->gsm_count * sizeof(struct gsm_t);
+    }
+    if (creq->cdma_count > 0) {
+        payload_length += sizeof(sky_entry_t) + creq->cdma_count * sizeof(struct cdma_t);
+    }
+    if (creq->umts_count > 0) {
+        payload_length += sizeof(sky_entry_t) + creq->umts_count * sizeof(struct umts_t);
+    }
+    if (creq->lte_count > 0) {
+        payload_length += sizeof(sky_entry_t) + creq->lte_count * sizeof(struct lte_t);
     }
 
     // payload length must be a multiple of 16 bytes
@@ -732,6 +766,50 @@ int32_t sky_encode_req_bin(uint8_t *buff, uint32_t buff_len, struct location_rq_
             //perror("unknown data type");
             return -1;
         }
+        adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
+    }
+    // GSM
+    if (creq->gsm_count > 0) {
+        p_entry_ex->entry->data_type = DATA_TYPE_GSM;
+        p_entry_ex->entry->data_type_count = creq->gsm_count;
+        sz = sizeof(struct gsm_t) * creq->gsm_count;
+#ifdef __BIG_ENDIAN__
+        sky_gsm_endian_swap(creq->gsms);
+#endif
+        memcpy(p_entry_ex->data, creq->gsms, sz);
+        adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
+    }
+    // CDMA
+    if (creq->cdma_count > 0) {
+        p_entry_ex->entry->data_type = DATA_TYPE_CDMA;
+        p_entry_ex->entry->data_type_count = creq->cdma_count;
+        sz = sizeof(struct cdma_t) * creq->cdma_count;
+#ifdef __BIG_ENDIAN__
+        sky_cdma_endian_swap(creq->cdmas);
+#endif
+        memcpy(p_entry_ex->data, creq->cdmas, sz);
+        adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
+    }
+    // UMTS
+    if (creq->umts_count > 0) {
+        p_entry_ex->entry->data_type = DATA_TYPE_UMTS;
+        p_entry_ex->entry->data_type_count = creq->umts_count;
+        sz = sizeof(struct umts_t) * creq->umts_count;
+#ifdef __BIG_ENDIAN__
+        sky_umts_endian_swap(creq->umtss);
+#endif
+        memcpy(p_entry_ex->data, creq->umtss, sz);
+        adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
+    }
+    // LTE
+    if (creq->lte_count > 0) {
+        p_entry_ex->entry->data_type = DATA_TYPE_LTE;
+        p_entry_ex->entry->data_type_count = creq->lte_count;
+        sz = sizeof(struct lte_t) * creq->lte_count;
+#ifdef __BIG_ENDIAN__
+        sky_lte_endian_swap(creq->ltes);
+#endif
+        memcpy(p_entry_ex->data, creq->ltes, sz);
         adjust_data_entry(buff, buff_len, (p_entry_ex->data - buff) + sz, p_entry_ex);
     }
     // GPS

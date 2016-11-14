@@ -873,7 +873,9 @@ ClientWiFiWrapper client_req;
 // start state of the device to be in Client mode on bootup
 // Change to start in Client Mode.
 void setup() {
-/* Uncomment the next line to make the RST pin/button a soft on/off button*/
+/* Uncomment the next line to disable watchdog timer for debugging */
+//  ESP.wdtDisable();
+/* Uncomment the next line to make the RST pin/button a soft on/off button */
 //  determine_on_state();
 
 //  WiFi.setAutoReconnect(true);
