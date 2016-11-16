@@ -360,9 +360,6 @@ class deviceInfo{
       return;
     }
     now = millis();
-    if(WiFi.status() != WL_CONNECTED){
-        WiFi.disconnect();
-    }
     if(now - last_update > DEVICE_UPDATE_RATE){
       update_oled(); 
       last_update = now;
