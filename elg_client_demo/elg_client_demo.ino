@@ -229,7 +229,9 @@ class APWiFiWrapper {
 
     // attempts to connect to specified AP, run init_check_connection after
     bool connect_to(String ssid, String password) {
-      WiFi.disconnect();
+      if(WiFi.status() == WL_CONNECTED){
+        WiFi.disconnect();
+      }
       WiFi.begin(ssid.c_str(), password.c_str());
       // resets the check flag
       init_check_finish = false;
@@ -253,7 +255,9 @@ class APWiFiWrapper {
 
     // resets AP class and WiFi connection
     void connection_reset() {
-      WiFi.disconnect();
+      if(WiFi.status() == WL_CONNECTED){
+        WiFi.disconnect();
+      }
       check_times = 0;
       init_check_finish = false;
     }
