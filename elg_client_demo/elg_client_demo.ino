@@ -871,6 +871,22 @@ class ClientWiFiWrapper{
 
 ClientWiFiWrapper client_req;
 
+void connect_to_wifi() {
+  Serial.print("Attempting to connect to know aps...");
+  print_to_oled("Connecting to APs","");
+  // tell device to connect to saved AP's in AP.json
+  client_req.conn_known_ap();
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("Connected!");
+    print_to_oled("Success: " + WiFi.SSID(),"");
+  }
+  else{
+    Serial.println("Unable to connect to known AP's");
+    print_to_oled("Unable to connect to known AP's","");
+  }
+  yield();
+}
+
 // start state of the device to be in Client mode on bootup
 // Change to start in Client Mode.
 void setup() {
@@ -900,29 +916,23 @@ void setup() {
 
   // preferences.json is loaded and boolean values are set
   load_config();
-  // Initialized OLED
+  // initialize OLED
   oled.init();
   oled.clearDisplay();
-  // Clears RSSI
+  // clear RSSI
   oled.setRSSI(0);
-  // Display Logo for Skyhook
+  // display Logo for Skyhook
   oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
   oled.display();
+  // config WiFi
   WiFi.mode(WIFI_AP_STA);
+  uint8_t mac[WL_MAC_ADDR_LENGTH];
+  WiFi.macAddress(mac);
   // display logo for 4 seconds with no interrupts but allow device to run processes
-  unsigned long now = millis();
-  unsigned long start = now;
-  while(now-start < 4000){
-    yield();
-    now = millis();
-  }
+  delay(4000);
   oled.clearDisplay();
   oled.setConnected(INITIAL_STARTUP_STATE);
   oled.refreshIcons();
-  uint8_t mac[WL_MAC_ADDR_LENGTH];
-  WiFi.macAddress(mac);
-  // crashes without this, unsure why
-  yield();
 
   // station mode allows both client and AP mode
   Serial.println();
@@ -931,6 +941,10 @@ void setup() {
   // set ssid and password
   WiFi.softAP(ssid, password);
   WiFi.softAPmacAddress(mac);
+  yield();
+  // connect to known WiFi
+  connect_to_wifi();
+  yield();
 
   // handles API like calls to the device
   server.on("/", handleRoot);
@@ -951,6 +965,7 @@ void setup() {
 
   server.begin();
   Serial.println("Initializing Server");
+  yield();
 
   device.handle();
 
@@ -961,19 +976,6 @@ void setup() {
   print_saved_preferences();
   Serial.println();
   
-  Serial.print("Attempting to connect to know aps...");
-  print_to_oled("Connecting to APs","");
-  // tell device to connect to saved AP's in AP.json
-  client_req.conn_known_ap();
-  if(WiFi.status() == WL_CONNECTED){
-    Serial.println("Connected!");
-    print_to_oled("Success: " + WiFi.SSID(),"");
-  }
-  else{
-    Serial.println("Unable to connect to known AP's");
-    print_to_oled("Unable to connect to known AP's","");
-  }
-  
   Serial.println("HTTP server started");
   Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
   device.set_state_settings();
@@ -983,6 +985,10 @@ void setup() {
 }
 
 void loop() {
+  // make sure WiFi connected
+  if(WiFi.status() != WL_CONNECTED){
+    connect_to_wifi();
+  }
   // handle differently depending on device state
   if(device.getDeviceState() == AP){
     server.handleClient();
