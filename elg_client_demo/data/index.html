@@ -1,622 +1,615 @@
 <!DOCTYPE html>
 <head>
-	<link rel="stylesheet" href="resources/picnic.min.css"></link>
-	<link rel="stylesheet" href="resources/plugins.min.css"></link>
-	<link rel="stylesheet" href="resources/animate.min.css"></link>
-	<script src="resources/umbrella.min.js"></script>
-	<!-- for ssid tables -->
-	<style>
-		.hidden {
-		    display: none;
-		}
-		button{
-			background:#0e4d95;
-		}
-		.button{
-			background:#0e4d95;
-		}
-		.itemStack div, .itemStack article{
-			padding-bottom:0px;
-			margin-bottom:0px;
-		}
-		.card{
-			margin-bottom: 0px;
-		}
-	</style>
-	<!-- toggle switch -->
-	<style>
-		.switch {
-		  position: relative;
-		  display: inline-block;
-		  width: 60px;
-		  height: 34px;
-		}
-
-		.switch input {display:none;}
-
-		.slider {
-		  position: absolute;
-		  cursor: pointer;
-		  top: 0;
-		  left: 0;
-		  right: 0;
-		  bottom: 0;
-		  background-color: #ccc;
-		  -webkit-transition: .4s;
-		  transition: .4s;
-		}
-
-		.slider:before {
-		  position: absolute;
-		  content: "";
-		  height: 26px;
-		  width: 26px;
-		  left: 4px;
-		  bottom: 4px;
-		  background-color: white;
-		  -webkit-transition: .4s;
-		  transition: .4s;
-		}
-
-		input:checked + .slider {
-		  background-color: #0e4d95;
-		}
-
-		input:focus + .slider {
-		}
-
-		input:checked + .slider:before {
-		  -webkit-transform: translateX(26px);
-		  -ms-transform: translateX(26px);
-		  transform: translateX(26px);
-		}
-		</style>
-	<!-- loading animation -->
-  <style type="text/css">
-	    /*
-	 *  Usage:
-	 *
-	      <div class="sk-wave">
-	        <div class="sk-rect sk-rect1"></div>
-	        <div class="sk-rect sk-rect2"></div>
-	        <div class="sk-rect sk-rect3"></div>
-	        <div class="sk-rect sk-rect4"></div>
-	        <div class="sk-rect sk-rect5"></div>
-	      </div>
-	 *
-	 */
-	.sk-wave {
-	  margin: 40px auto;
-	  width: 50px;
-	  height: 40px;
-	  text-align: center;
-	  font-size: 10px; }
-	  .sk-wave .sk-rect {
-	    background-color: #0e4d95;
-	    height: 100%;
-	    width: 6px;
-	    display: inline-block;
-	    -webkit-animation: sk-waveStretchDelay 1.2s infinite ease-in-out;
-	            animation: sk-waveStretchDelay 1.2s infinite ease-in-out; }
-	  .sk-wave .sk-rect1 {
-	    -webkit-animation-delay: -1.2s;
-	            animation-delay: -1.2s; }
-	  .sk-wave .sk-rect2 {
-	    -webkit-animation-delay: -1.1s;
-	            animation-delay: -1.1s; }
-	  .sk-wave .sk-rect3 {
-	    -webkit-animation-delay: -1s;
-	            animation-delay: -1s; }
-	  .sk-wave .sk-rect4 {
-	    -webkit-animation-delay: -0.9s;
-	            animation-delay: -0.9s; }
-	  .sk-wave .sk-rect5 {
-	    -webkit-animation-delay: -0.8s;
-	            animation-delay: -0.8s; }
-	@-webkit-keyframes sk-waveStretchDelay {
-	  0%, 40%, 100% {
-	    -webkit-transform: scaleY(0.4);
-	            transform: scaleY(0.4); }
-	  20% {
-	    -webkit-transform: scaleY(1);
-	            transform: scaleY(1); } }
-	@keyframes sk-waveStretchDelay {
-	  0%, 40%, 100% {
-	    -webkit-transform: scaleY(0.4);
-	            transform: scaleY(0.4); }
-	  20% {
-	    -webkit-transform: scaleY(1);
-	            transform: scaleY(1); } }
-	</style>
-</head>
-
-<nav class="loading" style="background-color: #0e4d95;"><a href="/" class="brand" style="background:url('resources/skyhook_logo.svg') center no-repeat; color:transparent;height: 50px;width:160px; margin-left:20px"><span>Logo</span></a></nav>
-
-<main>
-	<div class="tabs three" style="text-align:center; width:90%; max-width:960px; padding-top: 80px; margin:auto;">
-  <input id='tab-1' type='radio' name='tabgroupB' checked />
-  <label class="pseudo button toggle" for="tab-1">Current Network</label>
-  <input id='tab-2' type='radio' name='tabgroupB'>
-  <label class="pseudo button toggle" for="tab-2">Network Scan</label>
-  <input id='tab-3' type='radio' name='tabgroupB'>
-  <label class="pseudo button toggle" for="tab-3">Systems Panel</label>
-  <div class="row">
-    <div>
-    <br>
-      <div class="sk-wave hidden" for="current">
-        <div class="sk-rect sk-rect1"></div>
-        <div class="sk-rect sk-rect2"></div>
-        <div class="sk-rect sk-rect3"></div>
-        <div class="sk-rect sk-rect4"></div>
-        <div class="sk-rect sk-rect5"></div>
+   <link rel="stylesheet" href="resources/picnic.min.css">
+   </link>
+   <link rel="stylesheet" href="resources/plugins.min.css">
+   </link>
+   <link rel="stylesheet" href="resources/animate.min.css">
+   </link>
+   <script src="resources/umbrella.min.js"></script>
+   <!-- for ssid tables -->
+   <style>
+      .hidden {
+      display: none;
+      }
+      button{
+      background:#0e4d95;
+      }
+      .button{
+      background:#0e4d95;
+      }
+      .itemStack div, .itemStack article{
+      padding-bottom:0px;
+      margin-bottom:0px;
+      }
+      .card{
+      margin-bottom: 0px;
+      }
+   </style>
+   <!-- toggle switch -->
+   <style>
+      .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      }
+      .switch input {display:none;}
+      .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      -webkit-transition: .4s;
+      transition: .4s;
+      }
+      .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      -webkit-transition: .4s;
+      transition: .4s;
+      }
+      input:checked + .slider {
+      background-color: #0e4d95;
+      }
+      input:focus + .slider {
+      }
+      input:checked + .slider:before {
+      -webkit-transform: translateX(26px);
+      -ms-transform: translateX(26px);
+      transform: translateX(26px);
+      }
+   </style>
+   <!-- loading animation -->
+   <style type="text/css">
+      /*
+      *  Usage:
+      *
+      <div class="sk-wave">
+         <div class="sk-rect sk-rect1"></div>
+         <div class="sk-rect sk-rect2"></div>
+         <div class="sk-rect sk-rect3"></div>
+         <div class="sk-rect sk-rect4"></div>
+         <div class="sk-rect sk-rect5"></div>
       </div>
-      <div class="networkInfo hidden">
-      	<div class="flex five center itemStack">
-					<div class='flex three-fifth center'>
-						<div class='flex full center'>
-							<article class="card">
-								<header>
-									<span>BSSID: <span style="font-weight:normal" id='bssid'></span></span>
-								</header>
-							</article>
-						</div>
-					</div>
-					<div class='flex three-fifth center'>
-						<div class='flex full center'>
-							<article class="card">
-								<header>
-									<span>MAC: <span style="font-weight:normal" id='mac'></span></span>
-								</header>
-							</article>
-						</div>
-					</div>
-				</div>
-	    	<div class='flex five center'>
-		    	<article class="card">
-		    		<header>
-		    				<span>SSID</span>
-		    		</header>
-		    		<footer id='ssid'>
-		    			<span>N/A</span>
-						</footer>
-					</article>
-					<article class="card">
-	  				<header><span>IP Address</span></header>
-	  				<footer id='ipaddress'>
-	  					<span>N/A</span>
-	  				</footer>
-					</article>
-					<article class="card">
-	  				<header><span>Channel</span></header>
-	  				<footer id='channel'>
-	  					<span>N/A</span>
-	  				</footer>
-					</article>
-				</div>
-	    </div>
-	    <div>
-	    <br>
-    		<button class="button locate hidden">
-    			Locate Me
-    		</button>
-    		<div class="sk-wave hidden" for="location">
-	        <div class="sk-rect sk-rect1"></div>
-	        <div class="sk-rect sk-rect2"></div>
-	        <div class="sk-rect sk-rect3"></div>
-	        <div class="sk-rect sk-rect4"></div>
-	        <div class="sk-rect sk-rect5"></div>
-	      </div>
-	    </div>
-	    <br>
-	    <div class='locationInfo hidden'>
-	    	<div class='flex four center'>
-		    	<article class="card">
-		    		<header>
-		    				<span>LAT</span>
-		    		</header>
-		    		<footer>
-		    			<span id='LAT'>N/A</span>
-						</footer>
-				</article>
-					<article class="card">
-	  				<header><span>LON</span></header>
-	  				<footer>
-	  					<span id='LON' >N/A</span>
-	  				</footer>
-				</article>
-				</article>
-					<article class="card">
-	  				<header><span>HPE</span></header>
-	  				<footer>
-	  					<span id='HPE' >N/A</span>
-	  				</footer>
-				</article>
-				</div>
-				<div class='flex four center'>
-					<div class='flex half center'>
-						<article class='card' id='rev_geo'>
-							<header>
-								<span>
-									Reverse Geo
-								</span>
-							</header>
-							<footer>
-								<span id='reverse_geo'>
-									N/A
-								</span>
-							</footer>
-						</article>
-					</div>
-				</div>
-			</div>
-    </div>
-
-    <div>
-    <br>
-    		<div style="text-align:center">
-					<label id="verbose" class="switch">
-					  <input for="reverse_geo" class="toggle" type="checkbox">
-					  <div class="slider"></div>
-					</label>
-				</div>
-	      <div class="sk-wave hidden" for="network">
-	        <div class="sk-rect sk-rect1"></div>
-	        <div class="sk-rect sk-rect2"></div>
-	        <div class="sk-rect sk-rect3"></div>
-	        <div class="sk-rect sk-rect4"></div>
-	        <div class="sk-rect sk-rect5"></div>
-	      </div>
-      <section class="aps flex one center" style="text-align:left; width:90%; max-width:960px; margin:auto;">
-			</section>
-    </div>
-
-    <div>
-    <br>
-    	<div class='flex three center'>
-	    	<article class="card">
-	    		<header>
-	    				<span>HPE</span>
-	    		</header>
-	    		<footer>
-	    			<div class="flex two center">
-							<div style="text-align:center">
-								<label id="pref_hpe" class="switch">
-								  <input for="HPE" class="toggle pref" type="checkbox">
-								  <div class="slider"></div>
-								</label>
-							</div>
-						</div>
-					</footer>
-				</article>
-				<article class="card">
-  				<header><span>Reverse Geo</span></header>
-  				<footer>
-  					<div>
-	    					<div style="text-align:center">
-									<label id="pref_reverse_geo" class="switch">
-									  <input for="reverse_geo" class="toggle pref" type="checkbox">
-									  <div class="slider"></div>
-									</label>
-								</div>
-							</div>
-  				</footer>
-				</article>
-			</div>
-			<div class='flex two center'>
-				<article class="card">
-					<header>
-						<span> Scan Frequency </span>
-					</header>
-					<footer>
-						<div>
-							<label><input id="pref_scan_freq" type="number" placeholder="ms" min="1000"></label>
-						</div>
-					</footer>
-				</article>
-			</div>
-			<div>
-				<a id="pref" class="button" style>Save Preferences</a>
-			</div>
-			<div>
-			</div>
-    </div>
-  </div>
+      *
+      */
+      .sk-wave {
+      margin: 40px auto;
+      width: 50px;
+      height: 40px;
+      text-align: center;
+      font-size: 10px; }
+      .sk-wave .sk-rect {
+      background-color: #0e4d95;
+      height: 100%;
+      width: 6px;
+      display: inline-block;
+      -webkit-animation: sk-waveStretchDelay 1.2s infinite ease-in-out;
+      animation: sk-waveStretchDelay 1.2s infinite ease-in-out; }
+      .sk-wave .sk-rect1 {
+      -webkit-animation-delay: -1.2s;
+      animation-delay: -1.2s; }
+      .sk-wave .sk-rect2 {
+      -webkit-animation-delay: -1.1s;
+      animation-delay: -1.1s; }
+      .sk-wave .sk-rect3 {
+      -webkit-animation-delay: -1s;
+      animation-delay: -1s; }
+      .sk-wave .sk-rect4 {
+      -webkit-animation-delay: -0.9s;
+      animation-delay: -0.9s; }
+      .sk-wave .sk-rect5 {
+      -webkit-animation-delay: -0.8s;
+      animation-delay: -0.8s; }
+      @-webkit-keyframes sk-waveStretchDelay {
+      0%, 40%, 100% {
+      -webkit-transform: scaleY(0.4);
+      transform: scaleY(0.4); }
+      20% {
+      -webkit-transform: scaleY(1);
+      transform: scaleY(1); } }
+      @keyframes sk-waveStretchDelay {
+      0%, 40%, 100% {
+      -webkit-transform: scaleY(0.4);
+      transform: scaleY(0.4); }
+      20% {
+      -webkit-transform: scaleY(1);
+      transform: scaleY(1); } }
+   </style>
+</head>
+<nav class="loading" style="background-color: #0e4d95;"><a href="/" class="brand" style="background:url('resources/skyhook_logo.svg') center no-repeat; color:transparent;height: 50px;width:160px; margin-left:20px"><span>Logo</span></a></nav>
+<main>
+   <div class="tabs three" style="text-align:center; width:90%; max-width:960px; padding-top: 80px; margin:auto;">
+   <input id='tab-1' type='radio' name='tabgroupB' checked />
+   <label class="pseudo button toggle" for="tab-1">Current Network</label>
+   <input id='tab-2' type='radio' name='tabgroupB'>
+   <label class="pseudo button toggle" for="tab-2">Network Scan</label>
+   <input id='tab-3' type='radio' name='tabgroupB'>
+   <label class="pseudo button toggle" for="tab-3">Systems Panel</label>
+   <div class="row">
+      <div>
+         <br>
+         <div class="sk-wave hidden" for="current">
+            <div class="sk-rect sk-rect1"></div>
+            <div class="sk-rect sk-rect2"></div>
+            <div class="sk-rect sk-rect3"></div>
+            <div class="sk-rect sk-rect4"></div>
+            <div class="sk-rect sk-rect5"></div>
+         </div>
+         <div class="networkInfo hidden">
+            <div class="flex five center itemStack">
+               <div class='flex three-fifth center'>
+                  <div class='flex full center'>
+                     <article class="card">
+                        <header>
+                           <span>BSSID: <span style="font-weight:normal" id='bssid'></span></span>
+                        </header>
+                     </article>
+                  </div>
+               </div>
+               <div class='flex three-fifth center'>
+                  <div class='flex full center'>
+                     <article class="card">
+                        <header>
+                           <span>MAC: <span style="font-weight:normal" id='mac'></span></span>
+                        </header>
+                     </article>
+                  </div>
+               </div>
+            </div>
+            <div class='flex five center'>
+               <article class="card">
+                  <header>
+                     <span>SSID</span>
+                  </header>
+                  <footer id='ssid'>
+                     <span>N/A</span>
+                  </footer>
+               </article>
+               <article class="card">
+                  <header><span>IP Address</span></header>
+                  <footer id='ipaddress'>
+                     <span>N/A</span>
+                  </footer>
+               </article>
+               <article class="card">
+                  <header><span>Channel</span></header>
+                  <footer id='channel'>
+                     <span>N/A</span>
+                  </footer>
+               </article>
+            </div>
+         </div>
+         <div>
+            <br>
+            <button class="button locate hidden">
+            Locate Me
+            </button>
+            <div class="sk-wave hidden" for="location">
+               <div class="sk-rect sk-rect1"></div>
+               <div class="sk-rect sk-rect2"></div>
+               <div class="sk-rect sk-rect3"></div>
+               <div class="sk-rect sk-rect4"></div>
+               <div class="sk-rect sk-rect5"></div>
+            </div>
+         </div>
+         <br>
+         <div class='locationInfo hidden'>
+            <div class='flex four center'>
+               <article class="card">
+                  <header>
+                     <span>LAT</span>
+                  </header>
+                  <footer>
+                     <span id='LAT'>N/A</span>
+                  </footer>
+               </article>
+               <article class="card">
+                  <header><span>LON</span></header>
+                  <footer>
+                     <span id='LON' >N/A</span>
+                  </footer>
+               </article>
+               </article>
+               <article class="card">
+                  <header><span>HPE</span></header>
+                  <footer>
+                     <span id='HPE' >N/A</span>
+                  </footer>
+               </article>
+            </div>
+            <div class='flex four center'>
+               <div class='flex half center'>
+                  <article class='card' id='rev_geo'>
+                     <header>
+                        <span>
+                        Reverse Geo
+                        </span>
+                     </header>
+                     <footer>
+                        <span id='reverse_geo'>
+                        N/A
+                        </span>
+                     </footer>
+                  </article>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div>
+         <br>
+         <div style="text-align:center">
+            <label id="verbose" class="switch">
+               <input for="reverse_geo" class="toggle" type="checkbox">
+               <div class="slider"></div>
+            </label>
+         </div>
+         <div class="sk-wave hidden" for="network">
+            <div class="sk-rect sk-rect1"></div>
+            <div class="sk-rect sk-rect2"></div>
+            <div class="sk-rect sk-rect3"></div>
+            <div class="sk-rect sk-rect4"></div>
+            <div class="sk-rect sk-rect5"></div>
+         </div>
+         <section class="aps flex one center" style="text-align:left; width:90%; max-width:960px; margin:auto;">
+         </section>
+      </div>
+      <div>
+         <br>
+         <div class='flex three center'>
+            <article class="card">
+               <header>
+                  <span>HPE</span>
+               </header>
+               <footer>
+                  <div class="flex two center">
+                     <div style="text-align:center">
+                        <label id="pref_hpe" class="switch">
+                           <input for="HPE" class="toggle pref" type="checkbox">
+                           <div class="slider"></div>
+                        </label>
+                     </div>
+                  </div>
+               </footer>
+            </article>
+            <article class="card">
+               <header><span>Reverse Geo</span></header>
+               <footer>
+                  <div>
+                     <div style="text-align:center">
+                        <label id="pref_reverse_geo" class="switch">
+                           <input for="reverse_geo" class="toggle pref" type="checkbox">
+                           <div class="slider"></div>
+                        </label>
+                     </div>
+                  </div>
+               </footer>
+            </article>
+         </div>
+         <div class='flex two center'>
+            <article class="card">
+               <header>
+                  <span> Scan Frequency </span>
+               </header>
+               <footer>
+                  <div>
+                     <label><input id="pref_scan_freq" type="number" placeholder="ms" min="1000"></label>
+                  </div>
+               </footer>
+            </article>
+         </div>
+         <div>
+            <a id="pref" class="button" style>Save Preferences</a>
+         </div>
+         <div>
+         </div>
+      </div>
+   </div>
 </main>
 <div class="modal">
-  <input id="modal_1" type="checkbox" />
-  <label class="overlay"></label>
-  <article>
-    <header>
-      <h3>Enter the Wifi Password</h3>
-      <label for="modal_1" class="close">&times;</label>
-    </header>
-    <section class="content">
-    	<span class="warning button stack error">Connecting to this AP may be disconnect you temporarily...</span>
-      <input type="password" placeholder="Password" />
-    </section>
-    <footer>
-      <label style="float:right" class="button changeap" for="modal_1">
-        Connect
-      </label>
-    </footer>
-  </article>
+   <input id="modal_1" type="checkbox" />
+   <label class="overlay"></label>
+   <article>
+      <header>
+         <h3>Enter the Wifi Password</h3>
+         <label for="modal_1" class="close">&times;</label>
+      </header>
+      <section class="content">
+         <span class="warning button stack error">Connecting to this AP may be disconnect you temporarily...</span>
+         <input type="password" placeholder="Password" />
+      </section>
+      <footer>
+         <label style="float:right" class="button changeap" for="modal_1">
+         Connect
+         </label>
+      </footer>
+   </article>
 </div>
 <div class="modal">
-  <input id="modal_2" type="checkbox" />
-  <label class="overlay"></label>
-  <article>
-    <header>
-      <h3>Please Wait</h3>
-    </header>
-	    <section class="content">
-	      <div class="sk-wave">
-	        <div class="sk-rect sk-rect1"></div>
-	        <div class="sk-rect sk-rect2"></div>
-	        <div class="sk-rect sk-rect3"></div>
-	        <div class="sk-rect sk-rect4"></div>
-	        <div class="sk-rect sk-rect5"></div>
-	      </div>
-	    </section>
-    <footer>
-      <label class="hidden" id='close_loading' for="modal_2">
-      </label>
-    </footer>
-  </article>
+   <input id="modal_2" type="checkbox" />
+   <label class="overlay"></label>
+   <article>
+      <header>
+         <h3>Please Wait</h3>
+      </header>
+      <section class="content">
+         <div class="sk-wave">
+            <div class="sk-rect sk-rect1"></div>
+            <div class="sk-rect sk-rect2"></div>
+            <div class="sk-rect sk-rect3"></div>
+            <div class="sk-rect sk-rect4"></div>
+            <div class="sk-rect sk-rect5"></div>
+         </div>
+      </section>
+      <footer>
+         <label class="hidden" id='close_loading' for="modal_2">
+         </label>
+      </footer>
+   </article>
 </div>
 <label for='modal_2' id='toggle_load' class="hidden">
 <script>
-	var selected_network = "";
-	var network_scan_info = null;
-	var preferences = null;
-
-	var getWifiDisplayTemplate = function(ssid, ssid_item){
-			best_bssid = null;
-		Object.keys(ssid_item).forEach(function(key){
-			if(best_bssid == null){
-				best_bssid = ssid_item[key]
-				best_bssid['bssid'] = key;
-			}
-			else{
-				if(ssid_item[key]["rssi"] > best_bssid["rssi"]){
-					best_bssid = ssid_item[key];
-					best_bssid['bssid'] = key;
-				}
-			}
-		});
-		return "<article class='stack animated fadeInRight card'><header class='show'><div class='flex two'><div class='ssid' data-ssid>"+ssid+"</div><div>"+best_bssid['rssi']+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt : "+best_bssid['encrypt']+"<br>Channel : "+best_bssid['channel']+"<br>Hidden : "+best_bssid['hidden']+"<br>BSSI : "+best_bssid['bssid']+"</div><div class='fifth'><label for='modal_1' class='button connectap' data-ssid='"+ssid+"'style='position: absolute; bottom: .8em; right: .8em;'>Connect</label></div></div></footer></article></article>"
-	};
-	var show_network_list = function(data){
-				Object.keys(data).forEach(function(ssid_key) {
-	    	var ssid_item = data[ssid_key];
-	    	console.log(ssid_item)
-	    	u('.aps').append(getWifiDisplayTemplate(ssid_key, ssid_item));
-	    	reset();
-    });
-	}
-	var show_verbose_network_list = function(data){
-		var body = "";
-		Object.keys(network_scan_info).forEach(function(ssid_key) {
-    	Object.keys(network_scan_info[ssid_key]).forEach(function(bssid_key){
-    		var id_info = network_scan_info[ssid_key][bssid_key];
-    		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['encrypt']+'</td></tr>'
+   var selected_network = "";
+   var network_scan_info = null;
+   var preferences = null;
+   
+   var getWifiDisplayTemplate = function(ssid, ssid_item){
+   		best_bssid = null;
+   	Object.keys(ssid_item).forEach(function(key){
+   		if(best_bssid == null){
+   			best_bssid = ssid_item[key]
+   			best_bssid['bssid'] = key;
+   		}
+   		else{
+   			if(ssid_item[key]["rssi"] > best_bssid["rssi"]){
+   				best_bssid = ssid_item[key];
+   				best_bssid['bssid'] = key;
+   			}
+   		}
+   	});
+   	return "<article class='stack animated fadeInRight card'><header class='show'><div class='flex two'><div class='ssid' data-ssid>"+ssid+"</div><div>"+best_bssid['rssi']+"</div></div></header><article class='hidden card'><footer><div class='testing flex full'><div class='two-fifth'>Encrypt : "+best_bssid['encrypt']+"<br>Channel : "+best_bssid['channel']+"<br>Hidden : "+best_bssid['hidden']+"<br>BSSI : "+best_bssid['bssid']+"</div><div class='fifth'><label for='modal_1' class='button connectap' data-ssid='"+ssid+"'style='position: absolute; bottom: .8em; right: .8em;'>Connect</label></div></div></footer></article></article>"
+   };
+   var show_network_list = function(data){
+   			Object.keys(data).forEach(function(ssid_key) {
+       	var ssid_item = data[ssid_key];
+       	console.log(ssid_item)
+       	u('.aps').append(getWifiDisplayTemplate(ssid_key, ssid_item));
+       	reset();
+      });
+   }
+   var show_verbose_network_list = function(data){
+   	var body = "";
+   	Object.keys(network_scan_info).forEach(function(ssid_key) {
+      	Object.keys(network_scan_info[ssid_key]).forEach(function(bssid_key){
+      		var id_info = network_scan_info[ssid_key][bssid_key];
+      		body += '<tr><td>'+ssid_key+'</td><td>'+bssid_key+'</td><td>'+id_info['channel']+'</td><td>'+id_info['rssi']+'</td><td>'+id_info['encrypt']+'</td></tr>'
+      	});
     	});
-  	});
-  	u('.aps').html('<div><table class="animated fadeInLeft full"><thead><tr><th>SSID</th><th>BSSID</th><th>Channel</th><th>RSSI</th><th>Encrypt</th></tr></thead><tbody>'+body+'</tbody></table></div>');
-	}
-	var scan = function(){
-		console.log('scanning');
-		network_scan_info = null;
-  	var action = 'skyhookclient/scan';
-		var after = function(err, data){
-			network_scan_info = data;
-			console.log("attempting to remove class")
-			show_network_list(network_scan_info);
-			u('.sk-wave[for=network]').addClass('hidden');
-			Object.keys(data).forEach(function(key){
-				u('.ssid').closest('article').find()
-			});
-		}
-		var before = function(xhr){
-			xhr.responseType = 'json';
-			u('.sk-wave[for=network]').removeClass('hidden')
-		};
-		ajax(action, {method:'GET'}, after, before);
-	};
-	var reset = function(){
-		console.log('reseting')
-		u('.show').off('click');
-		u('.connectap').off('click');
-		u('.show').on('click', function(e) {
-  			u(this).siblings('article').toggleClass('hidden')
-  			console.log("show is clicking")
-		});
-		u('.connectap').on('click', function(e){
-			console.log('show modal clicked')
-			console.log(u(this).data('ssid'))
-			selected_network = u(this).data('ssid');
-			// TODO: Check if current channel and AP channel are different, if yes toggle warning
-		});
-	};
-	var getCurrentNetwork = function(){
-		var action = 'skyhookclient/getstatus';
-		var after = function(err, data){
-			console.log(data);
-			u('.sk-wave[for="current"]').addClass('hidden');
-			if(data['connected'] == true){
-				u('.networkInfo').removeClass('hidden animated fadeOut');
-				u('.networkInfo').addClass('animated fadeIn')
-				u('.locate').removeClass('hidden');
-				u('.locate').addClass('animated fadeInDown');
-				u('#bssid').html(data['bssid']);
-				u('#mac').html(data['mac']);
-				u('#ssid > span').html(data['ssid']);
-				u('#ipaddress > span').html(data['local_ip']);
-				u('#channel > span').html(data['channel']);
-			}
-			else{
-				u('.networkInfo').removeClass('hidden animated fadeOut');
-				u('.networkInfo').addClass('animated fadeIn')
-				u('.locate').addClass('hidden');
-				u('.locate').removeClass('animated fadeInDown');
-				u('#bssid').html('BSSID: N/A');
-				u('#mac').html('MAC: N/A');
-				u('#ssid > span').html('N/A');
-				u('#ipaddress > span').html('N/A');
-				u('#channel > span').html('N/A');
-			}
-		}
-		var before = function(xhr){
-			xhr.responseType = 'json';
-			u('.sk-wave[for="current"]').removeClass('hidden')
-			u('.networkInfo').addClass('hidden animated fadeOut');
-		};
-		ajax(action, {method:'GET'}, after, before);
-	};
-	var getPreferences = function(){
-		var action = 'skyhookclient/getpreferences';
-		var after = function(err,data){
-			preferences = data;
-			if(data['HPE'] == true){
-				u('#pref_hpe > input').attr('checked',true);
-			}
-			if(data['reverse_geo'] == true){
-				u('#pref_reverse_geo > input').attr('checked',true);
-			}
-			u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
-		};
-		var before = function(xhr){
-			xhr.responseType = 'json';
-			u('#pref_hpe').html('');
-			u('#pref_reverse_geo').html('');
-			u('#pref_hpe').html('<input for="HPE" class="toggle pref" type="checkbox"><div class="slider"></div>');
-			u('#pref_reverse_geo').html('<input for="reverse_geo" class="toggle pref" type="checkbox"><div class="slider"></div>');
-		}
-		ajax(action, {method:'GET'}, after, before);
-	}
-	var connect_to_ap = function(ssid_input, password_input){
-		var action = 'skyhookclient/changeap';
-		var options = {method: 'POST', body: {ssid:ssid_input, password: password_input}};
-		var after = function(err, data){
-			console.log(data);
-			window.setTimeout(function () {
-        location.href = "/";
-    	}, 8000);
-		}
-		var before = function(xhr){
-			console.log("Attempting to connect to:"+ssid_input+" with password: "+password_input)
-			xhr.responseType = 'json';
-		};
-		ajax(action, options, after, before);
-	};
-	var display_location = function(){
-		console.log('getting location');
-  		var action = 'skyhookclient/getlocation';
-		var after = function(err, data){
-			console.log(data);
-			if(data.hasOwnProperty('error')){
-				u('.locate').addClass('error');
-			}
-			else{
-				u('.locate').addClass('success');
-				console.log(data['LAT']);
-				console.log(data['LON']);
-				console.log(data['reverse_geo']);
-				u('#LAT').html(data['LAT']);
-				u('#LON').html(data['LON']);
-				if(preferences['reverse_geo']){
-					u('#reverse_geo').html(data['reverse_geo']);
-				}
-				if(preferences['HPE']){
-					console.log("HPE ENABLED")
-					u('#HPE').html(data['HPE']);
-				}
-				u('.locationInfo').removeClass('hidden');
-				u('.locationInfo').addClass('animated fadeIn');
-			}
-			u('.sk-wave[for=location]').addClass('hidden');
-		};
-		var before = function(xhr){
-			xhr.responseType = 'json';
-			u('.sk-wave[for=location]').removeClass('hidden')
-			u('.locationInfo').addClass('hidden');
-			u('.locate').removeClass('error');
-			u('.locate').removeClass('success');
-		};
-		ajax(action, {method:'GET'}, after, before);
-	};
-	u('.pseudo, .button, .toggle').on('click',function(){
-		if(u(this).attr('for')=='tab-1'){
-			console.log('tab 1');
-			u('.locate').addClass('hidden');
-			u('.locate').removeClass('animated fadeIn success error');
-			getCurrentNetwork();
-		}
-		else if(u(this).attr('for')=='tab-2'){
-			console.log("getting clicked")
-			if(u('.aps').children().length == 0){
-				console.log("tab-2 clicked")
-				console.log("initial scan")
-				scan();
-			}
-			else if(u('#tab-2').is(':checked')){
-				u('.aps').children().remove();
-				console.log('scanningkljljfalsd')
-				scan();
-			}
-		}
-		else if(u(this).attr('for')=='tab-3'){
-			console.log('tab-3 clicked');
-			getPreferences();
-		}
-	});
-	u('.changeap').on('click', function(){
-		console.log("changeap button clicked");
-		connect_to_ap(selected_network, u('.changeap').closest('article').find('input').nodes[0].value);
-		u('#toggle_load').trigger('click');
-	});
-	u('.locate').on('click',function(){
-		display_location();
-	});
-	u('#pref').on('click',function(){
-		u('#toggle_load').trigger('click');
-		var scan_freq_input = 2000;
-		var HPE_input = false;
-		var reverse_geo_input = false;
-		u('input.pref').each(function(node, i){
-			if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
-				HPE_input = true;
-			}
-			if(u(node).attr('for')=='reverse_geo' && u(node).is(':checked')){
-				reverse_geo_input = true;
-			}
-		});
-		var action = 'skyhookclient/changepreferences';
-		scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
-		var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input}};
-		var after = function(err, data){
-			console.log('prferences changed!')
-			location.reload(true);
-		}
-		var before = function(xhr){
-			console.log(HPE_input);
-			xhr.responseType = 'json';
-		};
-		ajax(action, options, after, before);
-	});
-	u('#verbose > input').on('click',function(){
-		if(u('#verbose > input').is(':checked')){
-			console.log('show verbose');
-			if(!u('.aps').children().length == 0 && network_scan_info != null){
-				u('.aps').children().remove();
-				show_verbose_network_list(network_scan_info);
-			}
-		}
-		else{
-			u('.aps').children().remove();
-			show_network_list(network_scan_info);
-		}
-	});
-	getPreferences();
-	getCurrentNetwork();
+    	u('.aps').html('<div><table class="animated fadeInLeft full"><thead><tr><th>SSID</th><th>BSSID</th><th>Channel</th><th>RSSI</th><th>Encrypt</th></tr></thead><tbody>'+body+'</tbody></table></div>');
+   }
+   var scan = function(){
+   	console.log('scanning');
+   	network_scan_info = null;
+    	var action = 'skyhookclient/scan';
+   	var after = function(err, data){
+   		network_scan_info = data;
+   		console.log("attempting to remove class")
+   		show_network_list(network_scan_info);
+   		u('.sk-wave[for=network]').addClass('hidden');
+   		Object.keys(data).forEach(function(key){
+   			u('.ssid').closest('article').find()
+   		});
+   	}
+   	var before = function(xhr){
+   		xhr.responseType = 'json';
+   		u('.sk-wave[for=network]').removeClass('hidden')
+   	};
+   	ajax(action, {method:'GET'}, after, before);
+   };
+   var reset = function(){
+   	console.log('reseting')
+   	u('.show').off('click');
+   	u('.connectap').off('click');
+   	u('.show').on('click', function(e) {
+    			u(this).siblings('article').toggleClass('hidden')
+    			console.log("show is clicking")
+   	});
+   	u('.connectap').on('click', function(e){
+   		console.log('show modal clicked')
+   		console.log(u(this).data('ssid'))
+   		selected_network = u(this).data('ssid');
+   		// TODO: Check if current channel and AP channel are different, if yes toggle warning
+   	});
+   };
+   var getCurrentNetwork = function(){
+   	var action = 'skyhookclient/getstatus';
+   	var after = function(err, data){
+   		console.log(data);
+   		u('.sk-wave[for="current"]').addClass('hidden');
+   		if(data['connected'] == true){
+   			u('.networkInfo').removeClass('hidden animated fadeOut');
+   			u('.networkInfo').addClass('animated fadeIn')
+   			u('.locate').removeClass('hidden');
+   			u('.locate').addClass('animated fadeInDown');
+   			u('#bssid').html(data['bssid']);
+   			u('#mac').html(data['mac']);
+   			u('#ssid > span').html(data['ssid']);
+   			u('#ipaddress > span').html(data['local_ip']);
+   			u('#channel > span').html(data['channel']);
+   		}
+   		else{
+   			u('.networkInfo').removeClass('hidden animated fadeOut');
+   			u('.networkInfo').addClass('animated fadeIn')
+   			u('.locate').addClass('hidden');
+   			u('.locate').removeClass('animated fadeInDown');
+   			u('#bssid').html('BSSID: N/A');
+   			u('#mac').html('MAC: N/A');
+   			u('#ssid > span').html('N/A');
+   			u('#ipaddress > span').html('N/A');
+   			u('#channel > span').html('N/A');
+   		}
+   	}
+   	var before = function(xhr){
+   		xhr.responseType = 'json';
+   		u('.sk-wave[for="current"]').removeClass('hidden')
+   		u('.networkInfo').addClass('hidden animated fadeOut');
+   	};
+   	ajax(action, {method:'GET'}, after, before);
+   };
+   var getPreferences = function(){
+   	var action = 'skyhookclient/getpreferences';
+   	var after = function(err,data){
+   		preferences = data;
+   		if(data['HPE'] == true){
+   			u('#pref_hpe > input').attr('checked',true);
+   		}
+   		if(data['reverse_geo'] == true){
+   			u('#pref_reverse_geo > input').attr('checked',true);
+   		}
+   		u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
+   	};
+   	var before = function(xhr){
+   		xhr.responseType = 'json';
+   		u('#pref_hpe').html('');
+   		u('#pref_reverse_geo').html('');
+   		u('#pref_hpe').html('<input for="HPE" class="toggle pref" type="checkbox"><div class="slider"></div>');
+   		u('#pref_reverse_geo').html('<input for="reverse_geo" class="toggle pref" type="checkbox"><div class="slider"></div>');
+   	}
+   	ajax(action, {method:'GET'}, after, before);
+   }
+   var connect_to_ap = function(ssid_input, password_input){
+   	var action = 'skyhookclient/changeap';
+   	var options = {method: 'POST', body: {ssid:ssid_input, password: password_input}};
+   	var after = function(err, data){
+   		console.log(data);
+   		window.setTimeout(function () {
+          location.href = "/";
+      	}, 8000);
+   	}
+   	var before = function(xhr){
+   		console.log("Attempting to connect to:"+ssid_input+" with password: "+password_input)
+   		xhr.responseType = 'json';
+   	};
+   	ajax(action, options, after, before);
+   };
+   var display_location = function(){
+   	console.log('getting location');
+    		var action = 'skyhookclient/getlocation';
+   	var after = function(err, data){
+   		console.log(data);
+   		if(data.hasOwnProperty('error')){
+   			u('.locate').addClass('error');
+   		}
+   		else{
+   			u('.locate').addClass('success');
+   			console.log(data['LAT']);
+   			console.log(data['LON']);
+   			console.log(data['reverse_geo']);
+   			u('#LAT').html(data['LAT']);
+   			u('#LON').html(data['LON']);
+   			if(preferences['reverse_geo']){
+   				u('#reverse_geo').html(data['reverse_geo']);
+   			}
+   			if(preferences['HPE']){
+   				console.log("HPE ENABLED")
+   				u('#HPE').html(data['HPE']);
+   			}
+   			u('.locationInfo').removeClass('hidden');
+   			u('.locationInfo').addClass('animated fadeIn');
+   		}
+   		u('.sk-wave[for=location]').addClass('hidden');
+   	};
+   	var before = function(xhr){
+   		xhr.responseType = 'json';
+   		u('.sk-wave[for=location]').removeClass('hidden')
+   		u('.locationInfo').addClass('hidden');
+   		u('.locate').removeClass('error');
+   		u('.locate').removeClass('success');
+   	};
+   	ajax(action, {method:'GET'}, after, before);
+   };
+   u('.pseudo, .button, .toggle').on('click',function(){
+   	if(u(this).attr('for')=='tab-1'){
+   		console.log('tab 1');
+   		u('.locate').addClass('hidden');
+   		u('.locate').removeClass('animated fadeIn success error');
+   		getCurrentNetwork();
+   	}
+   	else if(u(this).attr('for')=='tab-2'){
+   		console.log("getting clicked")
+   		if(u('.aps').children().length == 0){
+   			console.log("tab-2 clicked")
+   			console.log("initial scan")
+   			scan();
+   		}
+   		else if(u('#tab-2').is(':checked')){
+   			u('.aps').children().remove();
+   			console.log('scanningkljljfalsd')
+   			scan();
+   		}
+   	}
+   	else if(u(this).attr('for')=='tab-3'){
+   		console.log('tab-3 clicked');
+   		getPreferences();
+   	}
+   });
+   u('.changeap').on('click', function(){
+   	console.log("changeap button clicked");
+   	connect_to_ap(selected_network, u('.changeap').closest('article').find('input').nodes[0].value);
+   	u('#toggle_load').trigger('click');
+   });
+   u('.locate').on('click',function(){
+   	display_location();
+   });
+   u('#pref').on('click',function(){
+   	u('#toggle_load').trigger('click');
+   	var scan_freq_input = 2000;
+   	var HPE_input = false;
+   	var reverse_geo_input = false;
+   	u('input.pref').each(function(node, i){
+   		if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
+   			HPE_input = true;
+   		}
+   		if(u(node).attr('for')=='reverse_geo' && u(node).is(':checked')){
+   			reverse_geo_input = true;
+   		}
+   	});
+   	var action = 'skyhookclient/changepreferences';
+   	scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
+   	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input}};
+   	var after = function(err, data){
+   		console.log('prferences changed!')
+   		location.reload(true);
+   	}
+   	var before = function(xhr){
+   		console.log(HPE_input);
+   		xhr.responseType = 'json';
+   	};
+   	ajax(action, options, after, before);
+   });
+   u('#verbose > input').on('click',function(){
+   	if(u('#verbose > input').is(':checked')){
+   		console.log('show verbose');
+   		if(!u('.aps').children().length == 0 && network_scan_info != null){
+   			u('.aps').children().remove();
+   			show_verbose_network_list(network_scan_info);
+   		}
+   	}
+   	else{
+   		u('.aps').children().remove();
+   		show_network_list(network_scan_info);
+   	}
+   });
+   getPreferences();
+   getCurrentNetwork();
 </script>
 </html>
