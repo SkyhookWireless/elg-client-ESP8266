@@ -645,14 +645,13 @@ class ClientWiFiWrapper{
   void print_location_resp(struct location_rsp_t *cr)
   {
     Serial.println();
-    Serial.println("timestamp: ");
-    // TODO: TIMESTAM UINT8_T array to UINT64
+    Serial.print("timestamp: ");
 
-    // uint64_t timestamp = cr->payload_ext.payload.timestamp; 
-    // print64(timestamp);
-    // Serial.println();
-    
-//    print_u64(cr->timestamp);
+    uint64_t timestamp = 0;
+    strncpy((char *)&timestamp, (const char *)cr->payload_ext.payload.timestamp, sizeof(cr->payload_ext.payload.timestamp));
+    print64(timestamp);
+    Serial.println();
+
 /*
     char str[100];
     sprintf(str, "%" PRIu64, cr->timestamp);
