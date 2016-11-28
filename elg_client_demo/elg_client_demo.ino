@@ -22,6 +22,35 @@
 #include <Wire.h>
 #include <LiFuelGauge.h>
 
+/* returns number of result bytes that were successfully parsed */
+uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t reslen) {
+    uint32_t i, j = 0, k = 0;
+
+    for (i = 0; i < hexlen; i++) {
+        uint8_t c = (uint8_t) hexstr[i];
+
+        if (c >= '0' && c <= '9')
+            c -= '0';
+        else if (c >= 'a' && c <= 'f')
+            c = (uint8_t) ((c - 'a') + 10);
+        else if (c >= 'A' && c <= 'F')
+            c = (uint8_t) ((c - 'A') + 10);
+        else
+            continue;
+
+        // assign every other hex byte to lower or upper 4 bit
+        if (k++ & 0x01)
+            result[j++] |= c;
+        else
+            result[j] = c << 4;
+
+        if (j >= reslen)
+            break;
+    }
+
+    return j;
+}
+
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -1327,6 +1356,8 @@ void handleChangePreferences(){
       scan_freq_input = SCAN_DEFAULT_FRQ;
     }
     pref_obj["scan_freq"] = scan_freq_input;
+    pref_obj["realm_id"] = server.arg("realm_id").toInt();
+    pref_obj["aes_key"] = server.arg("aes_key");
 
     if (!SPIFFS.exists("/resources/preferencesTmp.json")) {
       SPIFFS.remove("/resources/preferencesTmp.json");
@@ -1341,6 +1372,11 @@ void handleChangePreferences(){
     // write to file
     pref_obj.printTo(b);
     b.close();
+
+    // update global "sky_key_t key"
+    key.userid = pref_obj["realm_id"];
+    memset(key.aes_key, 0, sizeof(key.aes_key));
+    hex2bin((const char *)pref_obj["aes_key"], strlen(pref_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
 
     Serial.println("after");
     pref_obj.prettyPrintTo(Serial);

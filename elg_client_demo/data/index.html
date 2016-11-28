@@ -307,6 +307,28 @@
                </footer>
             </article>
          </div>
+         <div class='flex two center'>
+            <article class="card">
+               <header>
+                  <span> Realm ID </span>
+               </header>
+               <footer>
+                  <div>
+                     <label><input id="pref_realm_id" type="number" min="10000"></label>
+                  </div>
+               </footer>
+            </article>
+            <article class="card">
+               <header>
+                  <span> AES Key </span>
+               </header>
+               <footer>
+                  <div>
+                     <label><input id="pref_aes_key" type="text"></label>
+                  </div>
+               </footer>
+            </article>
+         </div>
          <div>
             <a id="pref" class="button" style>Save Preferences</a>
          </div>
@@ -368,8 +390,7 @@
    		if(best_bssid == null){
    			best_bssid = ssid_item[key]
    			best_bssid['bssid'] = key;
-   		}
-   		else{
+   		}else{
    			if(ssid_item[key]["rssi"] > best_bssid["rssi"]){
    				best_bssid = ssid_item[key];
    				best_bssid['bssid'] = key;
@@ -445,8 +466,7 @@
    			u('#ssid > span').html(data['ssid']);
    			u('#ipaddress > span').html(data['local_ip']);
    			u('#channel > span').html(data['channel']);
-   		}
-   		else{
+   		}else{
    			u('.networkInfo').removeClass('hidden animated fadeOut');
    			u('.networkInfo').addClass('animated fadeIn')
    			u('.locate').addClass('hidden');
@@ -471,11 +491,17 @@
    		preferences = data;
    		if(data['HPE'] == true){
    			u('#pref_hpe > input').attr('checked',true);
-   		}
+   		}else{
+   			u('#pref_hpe > input').attr('checked',false);
+                }
    		if(data['reverse_geo'] == true){
    			u('#pref_reverse_geo > input').attr('checked',true);
-   		}
+                }else{
+   			u('#pref_reverse_geo > input').attr('checked',false);
+                }
    		u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
+   		u('#pref_realm_id').nodes[0].value = data['realm_id'];
+   		u('#pref_aes_key').nodes[0].value = data['aes_key'];
    	};
    	var before = function(xhr){
    		xhr.responseType = 'json';
@@ -508,8 +534,7 @@
    		console.log(data);
    		if(data.hasOwnProperty('error')){
    			u('.locate').addClass('error');
-   		}
-   		else{
+   		}else{
    			u('.locate').addClass('success');
    			console.log(data['LAT']);
    			console.log(data['LON']);
@@ -543,21 +568,18 @@
    		u('.locate').addClass('hidden');
    		u('.locate').removeClass('animated fadeIn success error');
    		getCurrentNetwork();
-   	}
-   	else if(u(this).attr('for')=='tab-2'){
+   	}else if(u(this).attr('for')=='tab-2'){
    		console.log("getting clicked")
    		if(u('.aps').children().length == 0){
    			console.log("tab-2 clicked")
    			console.log("initial scan")
    			scan();
-   		}
-   		else if(u('#tab-2').is(':checked')){
+   		}else if(u('#tab-2').is(':checked')){
    			u('.aps').children().remove();
    			console.log('scanningkljljfalsd')
    			scan();
    		}
-   	}
-   	else if(u(this).attr('for')=='tab-3'){
+   	}else if(u(this).attr('for')=='tab-3'){
    		console.log('tab-3 clicked');
    		getPreferences();
    	}
@@ -572,9 +594,11 @@
    });
    u('#pref').on('click',function(){
    	u('#toggle_load').trigger('click');
-   	var scan_freq_input = 2000;
    	var HPE_input = false;
    	var reverse_geo_input = false;
+   	var scan_freq_input = 2000;
+   	var realm_id_input = 0;
+   	var aes_key_input = '';
    	u('input.pref').each(function(node, i){
    		if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
    			HPE_input = true;
@@ -585,7 +609,9 @@
    	});
    	var action = 'skyhookclient/changepreferences';
    	scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
-   	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input}};
+   	realm_id_input = u('#pref_realm_id').nodes[0].valueAsNumber;
+   	aes_key_input = u('#pref_aes_key').nodes[0].value;
+   	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input, realm_id:realm_id_input, aes_key:aes_key_input}};
    	var after = function(err, data){
    		console.log('prferences changed!')
    		location.reload(true);
@@ -603,8 +629,7 @@
    			u('.aps').children().remove();
    			show_verbose_network_list(network_scan_info);
    		}
-   	}
-   	else{
+   	}else{
    		u('.aps').children().remove();
    		show_network_list(network_scan_info);
    	}
