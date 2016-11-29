@@ -25,3 +25,12 @@ cp elg_client_demo/common/src/protocol/sky_protocol.c elg_client_demo/sky_protoc
 sed -i -e "s|perror|//perror|g" elg_client_demo/sky_protocol.c
 sed -i -e "s|fprintf|//fprintf|g" elg_client_demo/sky_protocol.c
 
+# 3. Copy crypto files and comment out "perror".
+cp elg_client_demo/common/external/HMAC/hmac256.? elg_client_demo/
+cp elg_client_demo/common/external/tiny-AES128-C/aes.? elg_client_demo/
+cp elg_client_demo/common/inc/mauth.h elg_client_demo/
+cp elg_client_demo/common/inc/sky_crypt.h elg_client_demo/
+cp elg_client_demo/common/src/security/mauth.c elg_client_demo/
+cp elg_client_demo/common/src/security/sky_crypt.c elg_client_demo/
+sed -i -e "s|perror|//perror|g" elg_client_demo/sky_crypt.c
+

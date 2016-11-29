@@ -17,7 +17,6 @@
 #include "sky_crypt.h"
 #include "sky_protocol.h"
 #include "config.h"
-#include "sky_util.h"
 #include <math.h>
 #include <Wire.h>
 #include <LiFuelGauge.h>
