@@ -873,6 +873,16 @@ class ClientWiFiWrapper{
   }
 };
 
+// make it easier for device to receive the mode flipping signal
+void yield_wait(int ms){
+  unsigned long now = millis();
+  unsigned long start = now;
+  while(now-start < ms){
+    yield();
+    now = millis();
+  }
+}
+
 ClientWiFiWrapper client_req;
 
 // start state of the device to be in Client mode on bootup
@@ -973,17 +983,19 @@ void setup() {
 }
 
 void loop() {
-  // make sure WiFi connected
-  if(WiFi.status() != WL_CONNECTED){
-    connect_to_wifi();
-  }
   // handle differently depending on device state
   if(device.getDeviceState() == AP){
     server.handleClient();
     device.handle();
   }
   else{
-    client_req.handle();
+    // make sure WiFi connected
+    if(WiFi.status() != WL_CONNECTED){
+      connect_to_wifi();
+      yield_wait(1000); // wait for 1 second to allow changing to AP mode so as to reset WiFi password
+    }else{
+      client_req.handle();
+    }
   }
   state.update();
   yield();
