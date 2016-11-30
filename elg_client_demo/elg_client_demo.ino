@@ -57,22 +57,6 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-void print_buff(uint8_t *buff, int32_t len) {
-    int32_t i;
-    int32_t j = 0;
-
-    char tmp[16];
-     for (int i=0; i<len; i++) { 
-       sprintf(tmp, "%02X",buff[i]); 
-       Serial.print(tmp); Serial.print(" ");
-       if (++j > 15) {
-            j = 0;
-            Serial.print("\n");
-        }
-     }
-     Serial.print("\n");
-}
-
 // globals for preferences
 bool reverse_geo = true;
 bool HPE = true;
@@ -125,6 +109,9 @@ bool string_to_bool(String a);
 // stores the file contents into a String
 bool file_to_string(String path, const char* type, String& ret_buf);
 
+// prints binary array in HEX
+void print_buff(uint8_t *buff, int32_t len);
+
 // prints a and message b on msgArea specified by oled feather library in seperate lines
 void print_to_oled(String a, String b);
 
@@ -133,6 +120,9 @@ void print_location_oled();
 
 // returns number of result bytes that were successfully parsed
 uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t reslen);
+
+// make it easier for device to receive the mode flipping signal
+void yield_wait(int ms);
 
 // sends the index.htm page to the client
 void handleRoot();
@@ -873,133 +863,7 @@ class ClientWiFiWrapper{
   }
 };
 
-// make it easier for device to receive the mode flipping signal
-void yield_wait(int ms){
-  unsigned long now = millis();
-  unsigned long start = now;
-  while(now-start < ms){
-    yield();
-    now = millis();
-  }
-}
-
 ClientWiFiWrapper client_req;
-
-// start state of the device to be in Client mode on bootup
-// Change to start in Client Mode.
-void setup() {
-/* Uncomment the next line to disable watchdog timer for debugging */
-//  ESP.wdtDisable();
-/* Uncomment the next line to make the RST pin/button a soft on/off button */
-//  determine_on_state();
-
-//  WiFi.setAutoReconnect(true);
-//  WiFi.setAutoConnect(true);
-
-  // Begin Serial output
-  if(DEBUG){
-    Serial.begin(115200);
-    Serial.setDebugOutput(true);
-  }
-  
-  optimistic_yield(100);
-  // Begin ESP8266 File management system
-  SPIFFS.begin();
-  optimistic_yield(100);
-
-  gauge.reset();
-  optimistic_yield(100);
-  gauge.setAlertThreshold(ALERT_THRESHOLD);
-  Serial.println(String("Alert Threshold is set to ") + gauge.getAlertThreshold() + '%');
-
-  // preferences.json is loaded and boolean values are set
-  load_config();
-  // initialize OLED
-  oled.init();
-  oled.clearDisplay();
-  // clear RSSI
-  oled.setRSSI(0);
-  // display Logo for Skyhook
-  oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
-  oled.display();
-  // config WiFi
-  WiFi.mode(WIFI_AP_STA);
-  uint8_t mac[WL_MAC_ADDR_LENGTH];
-  WiFi.macAddress(mac);
-  // display logo for 4 seconds with no interrupts but allow device to run processes
-  delay(4000);
-  oled.clearDisplay();
-  oled.setConnected(INITIAL_STARTUP_STATE);
-  oled.refreshIcons();
-
-  // station mode allows both client and AP mode
-  Serial.println();
-  Serial.println("Configuring access point...");
-  
-  // set ssid and password
-  WiFi.softAP(ssid, password);
-  WiFi.softAPmacAddress(mac);
-  yield();
-  // connect to known WiFi
-  connect_to_wifi();
-  yield();
-
-  // handles API like calls to the device
-  server.on("/", handleRoot);
-  server.on("/skyhookclient/scan", HTTP_GET, handleScan);
-  server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
-  server.on("/skyhookclient/getstatus", HTTP_GET, handleGetStatus);
-  server.on("/skyhookclient/getpreferences", HTTP_GET, handleGetPreferences);
-  server.on("/skyhookclient/changepreferences", HTTP_POST, handleChangePreferences);
-  server.on("/skyhookclient/getlocation", HTTP_GET, handleLocation);
-  server.onNotFound(handleNotFound);
-
-  // scripts and css files for the web interface
-  server.on("/resources/plugins.min.css", HTTP_GET, handleResources);
-  server.on("/resources/picnic.min.css", HTTP_GET, handleResources);
-  server.on("/resources/umbrella.min.js", HTTP_GET, handleResources);
-  server.on("/resources/animate.min.css", HTTP_GET, handleResources);
-  server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
-
-  server.begin();
-  Serial.println("Initializing Server");
-  yield();
-
-  device.handle();
-
-  Serial.println("Saved Networks:");
-  print_saved_networks();
-  Serial.println();
-  Serial.println("Saved Preferences:");
-  print_saved_preferences();
-  Serial.println();
-  
-  Serial.println("HTTP server started");
-  Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
-  device.set_state_settings();
-  if(device.getDeviceState() == AP){
-    print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
-  }
-}
-
-void loop() {
-  // handle differently depending on device state
-  if(device.getDeviceState() == AP){
-    server.handleClient();
-    device.handle();
-  }
-  else{
-    // make sure WiFi connected
-    if(WiFi.status() != WL_CONNECTED){
-      connect_to_wifi();
-      yield_wait(1000); // wait for 1 second to allow changing to AP mode so as to reset WiFi password
-    }else{
-      client_req.handle();
-    }
-  }
-  state.update();
-  yield();
-}
 
 void load_config(){
   String config_json;
@@ -1079,6 +943,22 @@ bool file_to_string(String path, const char* type, String& ret_buf){
       return true;
   }
   return false;
+}
+
+void print_buff(uint8_t *buff, int32_t len) {
+    int32_t i;
+    int32_t j = 0;
+
+    char tmp[16];
+     for (int i=0; i<len; i++) { 
+       sprintf(tmp, "%02X",buff[i]); 
+       Serial.print(tmp); Serial.print(" ");
+       if (++j > 15) {
+            j = 0;
+            Serial.print("\n");
+        }
+     }
+     Serial.print("\n");
 }
 
 void print_to_oled(String msg1, String msg2){
@@ -1202,6 +1082,15 @@ uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t 
     }
 
     return j;
+}
+
+void yield_wait(int ms){
+  unsigned long now = millis();
+  unsigned long start = now;
+  while(now-start < ms){
+    yield();
+    now = millis();
+  }
 }
 
 void handleRoot() {
@@ -1504,4 +1393,123 @@ void print_saved_preferences(){
   Serial.println();
 }
 
+/**
+ * Entry point
+ */
+
+// start state of the device to be in Client mode on bootup
+// Change to start in Client Mode.
+void setup() {
+/* Uncomment the next line to disable watchdog timer for debugging */
+//  ESP.wdtDisable();
+/* Uncomment the next line to make the RST pin/button a soft on/off button */
+//  determine_on_state();
+
+//  WiFi.setAutoReconnect(true);
+//  WiFi.setAutoConnect(true);
+
+  // Begin Serial output
+  if(DEBUG){
+    Serial.begin(115200);
+    Serial.setDebugOutput(true);
+  }
+  
+  optimistic_yield(100);
+  // Begin ESP8266 File management system
+  SPIFFS.begin();
+  optimistic_yield(100);
+
+  gauge.reset();
+  optimistic_yield(100);
+  gauge.setAlertThreshold(ALERT_THRESHOLD);
+  Serial.println(String("Alert Threshold is set to ") + gauge.getAlertThreshold() + '%');
+
+  // preferences.json is loaded and boolean values are set
+  load_config();
+  // initialize OLED
+  oled.init();
+  oled.clearDisplay();
+  // clear RSSI
+  oled.setRSSI(0);
+  // display Logo for Skyhook
+  oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
+  oled.display();
+  // config WiFi
+  WiFi.mode(WIFI_AP_STA);
+  uint8_t mac[WL_MAC_ADDR_LENGTH];
+  WiFi.macAddress(mac);
+  // display logo for 4 seconds with no interrupts but allow device to run processes
+  delay(4000);
+  oled.clearDisplay();
+  oled.setConnected(INITIAL_STARTUP_STATE);
+  oled.refreshIcons();
+
+  // station mode allows both client and AP mode
+  Serial.println();
+  Serial.println("Configuring access point...");
+  
+  // set ssid and password
+  WiFi.softAP(ssid, password);
+  WiFi.softAPmacAddress(mac);
+  yield();
+  // connect to known WiFi
+  connect_to_wifi();
+  yield();
+
+  // handles API like calls to the device
+  server.on("/", handleRoot);
+  server.on("/skyhookclient/scan", HTTP_GET, handleScan);
+  server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
+  server.on("/skyhookclient/getstatus", HTTP_GET, handleGetStatus);
+  server.on("/skyhookclient/getpreferences", HTTP_GET, handleGetPreferences);
+  server.on("/skyhookclient/changepreferences", HTTP_POST, handleChangePreferences);
+  server.on("/skyhookclient/getlocation", HTTP_GET, handleLocation);
+  server.onNotFound(handleNotFound);
+
+  // scripts and css files for the web interface
+  server.on("/resources/plugins.min.css", HTTP_GET, handleResources);
+  server.on("/resources/picnic.min.css", HTTP_GET, handleResources);
+  server.on("/resources/umbrella.min.js", HTTP_GET, handleResources);
+  server.on("/resources/animate.min.css", HTTP_GET, handleResources);
+  server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
+
+  server.begin();
+  Serial.println("Initializing Server");
+  yield();
+
+  device.handle();
+
+  Serial.println("Saved Networks:");
+  print_saved_networks();
+  Serial.println();
+  Serial.println("Saved Preferences:");
+  print_saved_preferences();
+  Serial.println();
+  
+  Serial.println("HTTP server started");
+  Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
+  device.set_state_settings();
+  if(device.getDeviceState() == AP){
+    print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
+  }
+}
+
+void loop() {
+  // handle differently depending on device state
+  if(device.getDeviceState() == AP){
+    server.handleClient();
+    device.handle();
+  }
+  else{
+    // make sure WiFi connected
+    if(WiFi.status() != WL_CONNECTED){
+      connect_to_wifi();
+      yield_wait(1000); // wait for 1 second to allow changing to AP mode so as to reset WiFi password
+    }else{
+      client_req.handle();
+    }
+  }
+  state.update();
+  yield();
+}
 
