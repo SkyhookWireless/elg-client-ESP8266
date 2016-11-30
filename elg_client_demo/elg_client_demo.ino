@@ -21,35 +21,6 @@
 #include <Wire.h>
 #include <LiFuelGauge.h>
 
-/* returns number of result bytes that were successfully parsed */
-uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t reslen) {
-    uint32_t i, j = 0, k = 0;
-
-    for (i = 0; i < hexlen; i++) {
-        uint8_t c = (uint8_t) hexstr[i];
-
-        if (c >= '0' && c <= '9')
-            c -= '0';
-        else if (c >= 'a' && c <= 'f')
-            c = (uint8_t) ((c - 'a') + 10);
-        else if (c >= 'A' && c <= 'F')
-            c = (uint8_t) ((c - 'A') + 10);
-        else
-            continue;
-
-        // assign every other hex byte to lower or upper 4 bit
-        if (k++ & 0x01)
-            result[j++] |= c;
-        else
-            result[j] = c << 4;
-
-        if (j >= reslen)
-            break;
-    }
-
-    return j;
-}
-
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -108,7 +79,7 @@ bool HPE = true;
 int scan_frq;
 
 // gloabls required for location request and response
-struct sky_key_t key = {USERID, AES_KEY};
+struct sky_key_t key;
 struct location_rq_t rq;
 struct location_rsp_t resp;
 bool sent;
@@ -136,6 +107,9 @@ class ClientWiFiWrapper;
 // reads preferences settings (preferences.json) and loads their values
 void load_config();
 
+// establish connection to WiFi
+void connect_to_wifi();
+
 // changes DeviceInfo device state
 void change_device_state();
 
@@ -156,6 +130,9 @@ void print_to_oled(String a, String b);
 
 // prints the currently location in location_rsp_t struct to oled
 void print_location_oled();
+
+// returns number of result bytes that were successfully parsed
+uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t reslen);
 
 // sends the index.htm page to the client
 void handleRoot();
@@ -898,22 +875,6 @@ class ClientWiFiWrapper{
 
 ClientWiFiWrapper client_req;
 
-void connect_to_wifi() {
-  Serial.print("Attempting to connect to know aps...");
-  print_to_oled("Connecting to APs","");
-  // tell device to connect to saved AP's in AP.json
-  client_req.conn_known_ap();
-  if(WiFi.status() == WL_CONNECTED){
-    Serial.println("Connected!");
-    print_to_oled("Success: " + WiFi.SSID(),"");
-  }
-  else{
-    Serial.println("Unable to connect to known AP's");
-    print_to_oled("Unable to connect to known AP's","");
-  }
-  yield();
-}
-
 // start state of the device to be in Client mode on bootup
 // Change to start in Client Mode.
 void setup() {
@@ -1045,6 +1006,24 @@ void load_config(){
   scan_frq = config_obj["scan_freq"];
   HPE = config_obj["HPE"];
   reverse_geo = config_obj["reverse_geo"];
+  key.userid = config_obj["realm_id"];
+  memset(key.aes_key, 0, sizeof(key.aes_key));
+  hex2bin((const char *)config_obj["aes_key"], strlen(config_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
+}
+
+void connect_to_wifi() {
+  Serial.print("Attempting to connect to know aps...");
+  print_to_oled("Connecting to APs","");
+  // tell device to connect to saved AP's in AP.json
+  client_req.conn_known_ap();
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("Connected!");
+    print_to_oled("Success: " + WiFi.SSID(),"");
+  }
+  else{
+    Serial.println("Unable to connect to known AP's");
+    print_to_oled("Unable to connect to known AP's","");
+  }
 }
 
 void change_device_state(){
@@ -1183,6 +1162,34 @@ void print_location_oled(){
     if(state.update()) return;
     yield();
   }
+}
+
+uint32_t hex2bin(const char *hexstr, uint32_t hexlen, uint8_t *result, uint32_t reslen) {
+    uint32_t i, j = 0, k = 0;
+
+    for (i = 0; i < hexlen; i++) {
+        uint8_t c = (uint8_t) hexstr[i];
+
+        if (c >= '0' && c <= '9')
+            c -= '0';
+        else if (c >= 'a' && c <= 'f')
+            c = (uint8_t) ((c - 'a') + 10);
+        else if (c >= 'A' && c <= 'F')
+            c = (uint8_t) ((c - 'A') + 10);
+        else
+            continue;
+
+        // assign every other hex byte to lower or upper 4 bit
+        if (k++ & 0x01)
+            result[j++] |= c;
+        else
+            result[j] = c << 4;
+
+        if (j >= reslen)
+            break;
+    }
+
+    return j;
 }
 
 void handleRoot() {

@@ -10,13 +10,6 @@ const char *SKYHOOK_ELG_SERVER_URL = "elg.skyhook.com";
 /* Skyhook ELG server port */
 #define SKYHOOK_ELG_SERVER_PORT 9755
 
-/* userid provided by Skyhook */
-/* replace this with yours */
-#define USERID 11111
-/*  AES key provided by Skyhook */
-/* replace this with yours */
-/* store the key in a secure area */
-#define AES_KEY {0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01}
 // access point ap name
 const char *AP_SSID = "Skyhook ELG";
 // access point port number

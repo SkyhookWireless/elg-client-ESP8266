@@ -491,13 +491,9 @@
    		preferences = data;
    		if(data['HPE'] == true){
    			u('#pref_hpe > input').attr('checked',true);
-   		}else{
-   			u('#pref_hpe > input').attr('checked',false);
                 }
    		if(data['reverse_geo'] == true){
    			u('#pref_reverse_geo > input').attr('checked',true);
-                }else{
-   			u('#pref_reverse_geo > input').attr('checked',false);
                 }
    		u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
    		u('#pref_realm_id').nodes[0].value = data['realm_id'];
