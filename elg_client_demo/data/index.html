@@ -314,7 +314,7 @@
                </header>
                <footer>
                   <div>
-                     <label><input id="pref_realm_id" type="number" min="10000"></label>
+                     <label><input id="pref_realm_id" type="password"></label>
                   </div>
                </footer>
             </article>
@@ -324,7 +324,7 @@
                </header>
                <footer>
                   <div>
-                     <label><input id="pref_aes_key" type="text"></label>
+                     <label><input id="pref_aes_key" type="password"></label>
                   </div>
                </footer>
             </article>
@@ -496,8 +496,6 @@
    			u('#pref_reverse_geo > input').attr('checked',true);
                 }
    		u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
-   		u('#pref_realm_id').nodes[0].value = data['realm_id'];
-   		u('#pref_aes_key').nodes[0].value = data['aes_key'];
    	};
    	var before = function(xhr){
    		xhr.responseType = 'json';
@@ -593,7 +591,7 @@
    	var HPE_input = false;
    	var reverse_geo_input = false;
    	var scan_freq_input = 2000;
-   	var realm_id_input = 0;
+   	var realm_id_input = '';
    	var aes_key_input = '';
    	u('input.pref').each(function(node, i){
    		if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
@@ -605,7 +603,7 @@
    	});
    	var action = 'skyhookclient/changepreferences';
    	scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
-   	realm_id_input = u('#pref_realm_id').nodes[0].valueAsNumber;
+   	realm_id_input = u('#pref_realm_id').nodes[0].value;
    	aes_key_input = u('#pref_aes_key').nodes[0].value;
    	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input, realm_id:realm_id_input, aes_key:aes_key_input}};
    	var after = function(err, data){
