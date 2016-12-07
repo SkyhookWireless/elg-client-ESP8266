@@ -435,7 +435,7 @@ ESP8266WiFiMulti WiFiMulti;
 class ClientWiFiWrapper{
   bool sent;
   // access point array
-  struct ap_t aps[MAX_AP_COUNT];
+  struct ap_t aps[MAX_APS];
   // stores response
   unsigned long txTimer;
   unsigned long rxTimer;
@@ -485,8 +485,8 @@ class ClientWiFiWrapper{
 
     int n = WiFi.scanNetworks();
     
-    if (n > MAX_AP_COUNT){
-      n = MAX_AP_COUNT;
+    if (n > MAX_APS){
+      n = MAX_APS;
     }
   
     for (int i = 0; i < n; ++i)

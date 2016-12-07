@@ -14,10 +14,6 @@ const char *SKYHOOK_ELG_SERVER_URL = "elg.skyhook.com";
 const char *AP_SSID = "Skyhook ELG";
 // access point port number
 #define AP_PORT 80
-// wifi rx, tx buffer
-#define BUFF_SIZE 1024
-// max number of access point (mem alloc)
-#define MAX_AP_COUNT 50
 // wait for packet reception
 #define WIFI_RX_WAIT_TIME 2000 // ms
 
