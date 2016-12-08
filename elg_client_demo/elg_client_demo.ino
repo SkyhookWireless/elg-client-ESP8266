@@ -397,7 +397,7 @@ class deviceInfo{
       oled.setIPAddressVisible(true);
       oled.setVoltageVisible(true);
       //print_to_oled("AP", "");
-      print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
+      print_to_oled("Open in browser:", WiFi.softAPIP().toString());
       update_oled();
     }
     else{
@@ -1426,6 +1426,7 @@ void setup() {
 
   // preferences.json is loaded and boolean values are set
   load_config();
+
   // initialize OLED
   oled.init();
   oled.clearDisplay();
@@ -1434,10 +1435,12 @@ void setup() {
   // display Logo for Skyhook
   oled.drawBitmap(0, 0, skyhook_logo, 128, 32, WHITE);
   oled.display();
+
   // config WiFi
   WiFi.mode(WIFI_AP_STA);
   uint8_t mac[WL_MAC_ADDR_LENGTH];
   WiFi.macAddress(mac);
+
   // display logo for 4 seconds with no interrupts but allow device to run processes
   delay(4000);
   oled.clearDisplay();
@@ -1447,11 +1450,11 @@ void setup() {
   // station mode allows both client and AP mode
   Serial.println();
   Serial.println("Configuring access point...");
-  
   // set ssid and password
   WiFi.softAP(ssid, password);
   WiFi.softAPmacAddress(mac);
   yield();
+
   // connect to known WiFi
   connect_to_wifi();
   yield();
@@ -1490,7 +1493,7 @@ void setup() {
   Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
   device.set_state_settings();
   if(device.getDeviceState() == AP){
-    print_to_oled("Open in browswer:", WiFi.softAPIP().toString());
+    print_to_oled("Open in browser:", WiFi.softAPIP().toString());
   }
 }
 
