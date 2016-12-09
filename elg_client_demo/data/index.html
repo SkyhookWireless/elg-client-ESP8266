@@ -310,11 +310,11 @@
          <div class='flex two center'>
             <article class="card">
                <header>
-                  <span> Realm ID </span>
+                  <span> Partner ID </span>
                </header>
                <footer>
                   <div>
-                     <label><input id="pref_realm_id" type="password"></label>
+                     <label><input id="pref_partner_id" type="password"></label>
                   </div>
                </footer>
             </article>
@@ -591,7 +591,7 @@
    	var HPE_input = false;
    	var reverse_geo_input = false;
    	var scan_freq_input = 2000;
-   	var realm_id_input = '';
+   	var partner_id_input = '';
    	var aes_key_input = '';
    	u('input.pref').each(function(node, i){
    		if(u(node).attr('for')=='HPE' && u(node).is(':checked')){
@@ -603,9 +603,9 @@
    	});
    	var action = 'skyhookclient/changepreferences';
    	scan_freq_input = u('#pref_scan_freq').nodes[0].valueAsNumber;
-   	realm_id_input = u('#pref_realm_id').nodes[0].value;
+   	partner_id_input = u('#pref_partner_id').nodes[0].value;
    	aes_key_input = u('#pref_aes_key').nodes[0].value;
-   	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input, realm_id:realm_id_input, aes_key:aes_key_input}};
+   	var options = {method: 'POST', body: {HPE:HPE_input, reverse_geo: reverse_geo_input, scan_freq:scan_freq_input, partner_id:partner_id_input, aes_key:aes_key_input}};
    	var after = function(err, data){
    		console.log('prferences changed!')
    		location.reload(true);

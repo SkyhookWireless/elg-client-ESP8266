@@ -882,7 +882,7 @@ void load_config(){
   scan_frq = config_obj["scan_freq"];
   HPE = config_obj["HPE"];
   reverse_geo = config_obj["reverse_geo"];
-  key.userid = config_obj["realm_id"];
+  key.userid = config_obj["partner_id"];
   memset(key.aes_key, 0, sizeof(key.aes_key));
   hex2bin((const char *)config_obj["aes_key"], strlen(config_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
 }
@@ -1263,7 +1263,7 @@ void handleChangePreferences(){
       scan_freq_input = SCAN_DEFAULT_FRQ;
     }
     pref_obj["scan_freq"] = scan_freq_input;
-    pref_obj["realm_id"] = server.arg("realm_id").toInt();
+    pref_obj["partner_id"] = server.arg("partner_id").toInt();
     pref_obj["aes_key"] = server.arg("aes_key");
 
     if (!SPIFFS.exists("/resources/preferencesTmp.json")) {
@@ -1281,7 +1281,7 @@ void handleChangePreferences(){
     b.close();
 
     // update global "sky_key_t key"
-    key.userid = pref_obj["realm_id"];
+    key.userid = pref_obj["partner_id"];
     memset(key.aes_key, 0, sizeof(key.aes_key));
     hex2bin((const char *)pref_obj["aes_key"], strlen(pref_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
 
