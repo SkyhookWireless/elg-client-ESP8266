@@ -1088,6 +1088,7 @@ void yield_wait(int ms){
   unsigned long now = millis();
   unsigned long start = now;
   while(now-start < ms){
+    if(state.update()) return;
     yield();
     now = millis();
   }
