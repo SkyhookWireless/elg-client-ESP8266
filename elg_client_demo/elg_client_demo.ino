@@ -1437,7 +1437,7 @@ void setup() {
   oled.display();
 
   // config WiFi
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_STA);
   uint8_t mac[WL_MAC_ADDR_LENGTH];
   WiFi.macAddress(mac);
 
@@ -1447,37 +1447,8 @@ void setup() {
   oled.setConnected(INITIAL_STARTUP_STATE);
   oled.refreshIcons();
 
-  // station mode allows both client and AP mode
-  Serial.println();
-  Serial.println("Configuring access point...");
-  // set ssid and password
-  WiFi.softAP(ssid, password);
-  WiFi.softAPmacAddress(mac);
-  yield();
-
   // connect to known WiFi
   connect_to_wifi();
-  yield();
-
-  // handles API like calls to the device
-  server.on("/", handleRoot);
-  server.on("/skyhookclient/scan", HTTP_GET, handleScan);
-  server.on("/skyhookclient/changeap", HTTP_POST, handleChangeAP);
-  server.on("/skyhookclient/getstatus", HTTP_GET, handleGetStatus);
-  server.on("/skyhookclient/getpreferences", HTTP_GET, handleGetPreferences);
-  server.on("/skyhookclient/changepreferences", HTTP_POST, handleChangePreferences);
-  server.on("/skyhookclient/getlocation", HTTP_GET, handleLocation);
-  server.onNotFound(handleNotFound);
-
-  // scripts and css files for the web interface
-  server.on("/resources/plugins.min.css", HTTP_GET, handleResources);
-  server.on("/resources/picnic.min.css", HTTP_GET, handleResources);
-  server.on("/resources/umbrella.min.js", HTTP_GET, handleResources);
-  server.on("/resources/animate.min.css", HTTP_GET, handleResources);
-  server.on("/resources/skyhook_logo.svg", HTTP_GET, handleResources);
-
-  server.begin();
-  Serial.println("Initializing Server");
   yield();
 
   device.handle();
@@ -1488,31 +1459,18 @@ void setup() {
   Serial.println("Saved Preferences:");
   print_saved_preferences();
   Serial.println();
-  
-  Serial.println("HTTP server started");
-  Serial.println("Open "+ WiFi.softAPIP().toString()+" in your browser\n");
+
   device.set_state_settings();
-  if(device.getDeviceState() == AP){
-    print_to_oled("Open in browser:", WiFi.softAPIP().toString());
-  }
 }
 
 void loop() {
-  // handle differently depending on device state
-  if(device.getDeviceState() == AP){
-    server.handleClient();
-    device.handle();
+  // make sure WiFi connected
+  if(WiFi.status() != WL_CONNECTED){
+    connect_to_wifi();
+    yield_wait(1000); // wait for 1 second to allow changing to AP mode so as to reset WiFi password
+  }else{
+    client_req.handle();
   }
-  else{
-    // make sure WiFi connected
-    if(WiFi.status() != WL_CONNECTED){
-      connect_to_wifi();
-      yield_wait(1000); // wait for 1 second to allow changing to AP mode so as to reset WiFi password
-    }else{
-      client_req.handle();
-    }
-  }
-  state.update();
   yield();
 }
 
