@@ -483,7 +483,7 @@ class ClientWiFiWrapper{
     uint8_t * buff = NULL;
     SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
 
-    int n = WiFi.scanNetworks();
+    int n = WiFi.scanNetworks(false,true);
     
     if (n > MAX_APS){
       n = MAX_APS;
@@ -1145,7 +1145,7 @@ void handleResources() {
 void handleScan() {
   Serial.println("Scanning Networks");
   print_to_oled("Scanning Networks", "");
-  int n = WiFi.scanNetworks();
+  int n = WiFi.scanNetworks(false,true);
   DynamicJsonBuffer scan_obj_buf;
   JsonObject& scan_obj = scan_obj_buf.createObject();
 
