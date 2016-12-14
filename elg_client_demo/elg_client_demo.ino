@@ -465,6 +465,10 @@ class ClientWiFiWrapper{
     DynamicJsonBuffer bssid_obj_buf;
     JsonObject& bssid_obj = bssid_obj_buf.parseObject(APjson);
 
+    if (bssid_obj.size() == 0) {
+      return; // no known access point
+    }
+
     for (JsonObject::iterator it=bssid_obj.begin(); it!=bssid_obj.end(); ++it)
     {
       String ssid = it->key;
