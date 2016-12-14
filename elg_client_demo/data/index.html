@@ -496,13 +496,15 @@
    			u('#pref_reverse_geo > input').attr('checked',true);
                 }
    		u('#pref_scan_freq').nodes[0].value = data['scan_freq'];
+   		u('#pref_partner_id').nodes[0].value = data['partner_id'];
+   		u('#pref_aes_key').nodes[0].value = data['aes_key'];
    	};
    	var before = function(xhr){
    		xhr.responseType = 'json';
-   		u('#pref_hpe').html('');
-   		u('#pref_reverse_geo').html('');
    		u('#pref_hpe').html('<input for="HPE" class="toggle pref" type="checkbox"><div class="slider"></div>');
    		u('#pref_reverse_geo').html('<input for="reverse_geo" class="toggle pref" type="checkbox"><div class="slider"></div>');
+   		u('#pref_partner_id').html('<input id="pref_partner_id" type="password">');
+   		u('#pref_aes_key').html('<input id="pref_aes_key" type="password">');
    	}
    	ajax(action, {method:'GET'}, after, before);
    }
