@@ -21,6 +21,8 @@
 #include <Wire.h>
 #include <LiFuelGauge.h>
 
+#define MAX_RQS_TO_RESET    1000   // Forcefully reset ESP8266 due to its stability issue
+
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -61,6 +63,7 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
+int total_rqs = 0;
 
 // gloabls required for location request and response
 struct sky_key_t key;
@@ -477,7 +480,9 @@ class ClientWiFiWrapper{
       Serial.println(pw);
       WiFiMulti.addAP(ssid.c_str(), pw.c_str());
     }
+    yield();
     WiFi.scanNetworks(false,true);
+    yield();
     Serial.println(str_status[WiFiMulti.run()]);
     WiFi.scanDelete();
   }
@@ -487,8 +492,10 @@ class ClientWiFiWrapper{
     uint8_t * buff = NULL;
     SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
 
+    yield();
     int n = WiFi.scanNetworks(false,true);
-    
+    yield();
+
     if (n > MAX_APS){
       n = MAX_APS;
     }
@@ -562,7 +569,9 @@ class ClientWiFiWrapper{
       }
   
       // close any connection
+      yield();
       client.stop();
+      yield();
   
       Serial.print("connecting to ");
       Serial.print(SKYHOOK_ELG_SERVER_URL);
@@ -570,8 +579,10 @@ class ClientWiFiWrapper{
       Serial.println(SKYHOOK_ELG_SERVER_PORT);
 
       // on failure to connect to elg server
+      yield();
       if (!client.connect(SKYHOOK_ELG_SERVER_URL, SKYHOOK_ELG_SERVER_PORT))
       {
+          yield();
           Serial.println("connection failed");
           oled.clearDisplay();
           device.update_oled();
@@ -589,6 +600,7 @@ class ClientWiFiWrapper{
           }
           return;
       }
+      yield();
   
       size_t wcnt = client.write((const uint8_t *)buff, (size_t)cnt);
       Serial.print("sent:");
@@ -613,7 +625,9 @@ class ClientWiFiWrapper{
       }
       Serial.println("\n########### Location Response ###########");
       //Serial.println(buff);
+      yield();
       n = client.read(buff, n);
+      yield();
       Serial.print("read bytes: ");
       Serial.println(n);
 
@@ -1006,7 +1020,9 @@ void print_location_oled(){
           oled.println("HPE: " + String(resp.location.hpe, 5));
         }
       }
+      yield();
       oled.display();
+      yield();
       page1_done = true;
     }
     if(now - start_time > page1_display_timer && !page2_done){
@@ -1048,7 +1064,9 @@ void print_location_oled(){
         oled.setCursor(0,8);
         oled.println("Unable to determine location");
       }
+      yield();
       oled.display();
+      yield();
       page2_done = true;
     }
     if(now - start_time > (unsigned long)scan_frq){
@@ -1503,6 +1521,9 @@ void setup() {
 }
 
 void loop() {
+  if(total_rqs == MAX_RQS_TO_RESET){
+    ESP.reset();
+  }
   // handle differently depending on device state
   if(device.getDeviceState() == AP){
     server.handleClient();
@@ -1518,6 +1539,7 @@ void loop() {
     }
   }
   state.update();
+  ++total_rqs;
   yield();
 }
 
