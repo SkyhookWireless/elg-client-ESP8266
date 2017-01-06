@@ -21,7 +21,7 @@
 #include <Wire.h>
 #include <LiFuelGauge.h>
 
-#define MAX_RQS_TO_RESET    1000   // Forcefully reset ESP8266 due to its stability issue
+#define MAX_MS_TO_RESET    10800000   // Forcefully reset ESP8266 every 3 hours due to its stability issue
 
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
@@ -63,7 +63,7 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
-int total_rqs = 0;
+unsigned long esp_start_time = 0;
 
 // gloabls required for location request and response
 struct sky_key_t key;
@@ -172,6 +172,16 @@ ESP8266WebServer server(80);
 WiFiClient client;
 Adafruit_FeatherOLED_WiFi oled = Adafruit_FeatherOLED_WiFi();
 LiFuelGauge gauge(MAX17043);
+
+void sw_rst() {
+  unsigned long now = millis();
+  unsigned long esp_elasped_time = now - esp_start_time;
+  if(esp_elasped_time > MAX_MS_TO_RESET){
+    Serial.print("ESP elasped time = ");
+    Serial.println(esp_elasped_time);
+    ESP.reset();
+  }
+}
 
 class Button{
   unsigned long previousMillis;
@@ -508,6 +518,7 @@ class ClientWiFiWrapper{
         // delay(10);
         yield();
     }
+
     // create location request
       rq.key = key; // assign key
   
@@ -1431,6 +1442,7 @@ void setup() {
 //  WiFi.setAutoReconnect(true);
 //  WiFi.setAutoConnect(true);
 
+  esp_start_time = millis();
   // Begin Serial output
   if(DEBUG){
     Serial.begin(115200);
@@ -1521,9 +1533,6 @@ void setup() {
 }
 
 void loop() {
-  if(total_rqs == MAX_RQS_TO_RESET){
-    ESP.reset();
-  }
   // handle differently depending on device state
   if(device.getDeviceState() == AP){
     server.handleClient();
@@ -1537,9 +1546,9 @@ void loop() {
     }else{
       client_req.handle();
     }
+    sw_rst();
   }
   state.update();
-  ++total_rqs;
   yield();
 }
 
