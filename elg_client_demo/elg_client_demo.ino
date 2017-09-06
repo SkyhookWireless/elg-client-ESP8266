@@ -69,7 +69,6 @@ unsigned long esp_start_time = 0;
 struct sky_key_t key;
 struct location_rq_t rq;
 struct location_rsp_t resp;
-bool sent;
 
 // function type
 typedef void (*functiontype)();
@@ -620,6 +619,8 @@ class ClientWiFiWrapper{
       WiFi.scanDelete();
       Serial.println("########################################\n");
   }
+
+  // rx() receives a location response from skyhook
   bool rx(){
     uint8_t * buff = NULL;
     SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
@@ -627,7 +628,10 @@ class ClientWiFiWrapper{
     int n = client.available();
     while(n = client.available()){
       // check for button interrupt
-      if(state.update()) return false;
+      if(state.update()){
+        Serial.println("rx() failed due to state change");
+        return false;
+      }
 
       
       // trim to buff size
@@ -663,8 +667,10 @@ class ClientWiFiWrapper{
       sent = false;
       return true;
     }
+    Serial.println("rx() failed due to no data available");
     return false;
   }
+
   // ONLY FOR DEBUGGING IN SERIAL
   void print_location_resp(struct location_rsp_t *cr)
   {
@@ -791,7 +797,8 @@ class ClientWiFiWrapper{
       Serial.println();
   }
 
-  // handles elg request and response and displays on the oled
+  // clnt mode: handle() sends and receives location request and response within the timeframe of [10s,20s],
+  // and displays on the oled
   void handle(){
     unsigned long now = millis();
     if(WiFi.status() == WL_CONNECTED){
@@ -804,13 +811,17 @@ class ClientWiFiWrapper{
         }
       }
       else{
-        if(now - rxTimer > WIFI_RX_WAIT_TIME){
-          if(now - rxTimer < SOCKET_TIMEOUT){
+        if(now - rxTimer > WIFI_RX_WAIT_TIME * 5){
+          if(now - rxTimer < SOCKET_TIMEOUT * 2 + WIFI_RX_WAIT_TIME * 5){
             if(rx()){
               rxTimer = now;
               // SERIAL DEBUGGING
               print_location_oled();
               check_time = 0;
+            }
+            else {
+              Serial.println("clnt mode: rx() failed at time "+String(now - rxTimer));
+              sent = false;
             }
           }
           else{
@@ -828,7 +839,9 @@ class ClientWiFiWrapper{
     }
   }
 
-  // function that will return a single location response in a form of a json
+  // location_json() serves ap mode (web server) to respond to the web client "Locate Me" request
+  // within the timeframe of [10s,20s], and returns a single location response in a form of a json
+  // from web server to web client.
   void location_json(){
     String error = "";
     while(true){
@@ -842,8 +855,8 @@ class ClientWiFiWrapper{
           }
         }
         else{
-          if(now - rxTimer > WIFI_RX_WAIT_TIME){
-            while(!(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME)){
+          if(now - rxTimer > WIFI_RX_WAIT_TIME * 5){
+            if(now - rxTimer < SOCKET_TIMEOUT * 2 + WIFI_RX_WAIT_TIME * 5){
               if(rx()){
                 if(get_error(error)){
                   Serial.println(error);
@@ -881,6 +894,7 @@ class ClientWiFiWrapper{
                 return;
               }
             }
+            sent = false;
           }
         }
       }
