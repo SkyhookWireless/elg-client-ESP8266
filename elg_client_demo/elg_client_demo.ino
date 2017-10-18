@@ -21,8 +21,6 @@
 #include <Wire.h>
 #include <LiFuelGauge.h>
 
-#define MAX_MS_TO_RESET    10800000   // Forcefully reset ESP8266 every 3 hours due to its stability issue
-
 //startup logo
 static const unsigned char PROGMEM skyhook_logo [] = {
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -171,16 +169,6 @@ ESP8266WebServer server(80);
 WiFiClient client;
 Adafruit_FeatherOLED_WiFi oled = Adafruit_FeatherOLED_WiFi();
 LiFuelGauge gauge(MAX17043);
-
-void sw_rst() {
-  unsigned long now = millis();
-  unsigned long esp_elasped_time = now - esp_start_time;
-  if(esp_elasped_time > MAX_MS_TO_RESET){
-    Serial.print("ESP elasped time = ");
-    Serial.println(esp_elasped_time);
-    ESP.reset();
-  }
-}
 
 class Button{
   unsigned long previousMillis;
@@ -811,8 +799,8 @@ class ClientWiFiWrapper{
         }
       }
       else{
-        if(now - rxTimer > WIFI_RX_WAIT_TIME * 5){
-          if(now - rxTimer < SOCKET_TIMEOUT * 2 + WIFI_RX_WAIT_TIME * 5){
+        if(now - rxTimer > WIFI_RX_WAIT_TIME){
+          if(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME){
             if(rx()){
               rxTimer = now;
               // SERIAL DEBUGGING
@@ -855,8 +843,8 @@ class ClientWiFiWrapper{
           }
         }
         else{
-          if(now - rxTimer > WIFI_RX_WAIT_TIME * 5){
-            if(now - rxTimer < SOCKET_TIMEOUT * 2 + WIFI_RX_WAIT_TIME * 5){
+          if(now - rxTimer > WIFI_RX_WAIT_TIME){
+            if(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME){
               if(rx()){
                 if(get_error(error)){
                   Serial.println(error);
@@ -1560,7 +1548,6 @@ void loop() {
     }else{
       client_req.handle();
     }
-    sw_rst();
   }
   state.update();
   yield();
