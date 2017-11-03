@@ -61,12 +61,12 @@ static const unsigned char PROGMEM skyhook_logo [] = {
 bool reverse_geo = true;
 bool HPE = true;
 int scan_frq;
+unsigned long esp_start_time = 0;
 
 // gloabls required for location request and response
 struct sky_key_t key;
 struct location_rq_t rq;
 struct location_rsp_t resp;
-bool sent;
 
 // function type
 typedef void (*functiontype)();
@@ -477,7 +477,9 @@ class ClientWiFiWrapper{
       Serial.println(pw);
       WiFiMulti.addAP(ssid.c_str(), pw.c_str());
     }
+    yield();
     WiFi.scanNetworks(false,true);
+    yield();
     Serial.println(str_status[WiFiMulti.run()]);
     WiFi.scanDelete();
   }
@@ -487,8 +489,10 @@ class ClientWiFiWrapper{
     uint8_t * buff = NULL;
     SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
 
+    yield();
     int n = WiFi.scanNetworks(false,true);
-    
+    yield();
+
     if (n > MAX_APS){
       n = MAX_APS;
     }
@@ -501,6 +505,7 @@ class ClientWiFiWrapper{
         // delay(10);
         yield();
     }
+
     // create location request
       rq.key = key; // assign key
   
@@ -562,7 +567,9 @@ class ClientWiFiWrapper{
       }
   
       // close any connection
+      yield();
       client.stop();
+      yield();
   
       Serial.print("connecting to ");
       Serial.print(SKYHOOK_ELG_SERVER_URL);
@@ -570,8 +577,10 @@ class ClientWiFiWrapper{
       Serial.println(SKYHOOK_ELG_SERVER_PORT);
 
       // on failure to connect to elg server
+      yield();
       if (!client.connect(SKYHOOK_ELG_SERVER_URL, SKYHOOK_ELG_SERVER_PORT))
       {
+          yield();
           Serial.println("connection failed");
           oled.clearDisplay();
           device.update_oled();
@@ -589,6 +598,7 @@ class ClientWiFiWrapper{
           }
           return;
       }
+      yield();
   
       size_t wcnt = client.write((const uint8_t *)buff, (size_t)cnt);
       Serial.print("sent:");
@@ -597,6 +607,8 @@ class ClientWiFiWrapper{
       WiFi.scanDelete();
       Serial.println("########################################\n");
   }
+
+  // rx() receives a location response from skyhook
   bool rx(){
     uint8_t * buff = NULL;
     SKY_LOCAL_BYTE_BUFF_32(buff,SKY_PROT_BUFF_LEN);
@@ -604,7 +616,10 @@ class ClientWiFiWrapper{
     int n = client.available();
     while(n = client.available()){
       // check for button interrupt
-      if(state.update()) return false;
+      if(state.update()){
+        Serial.println("rx() failed due to state change");
+        return false;
+      }
 
       
       // trim to buff size
@@ -613,7 +628,9 @@ class ClientWiFiWrapper{
       }
       Serial.println("\n########### Location Response ###########");
       //Serial.println(buff);
+      yield();
       n = client.read(buff, n);
+      yield();
       Serial.print("read bytes: ");
       Serial.println(n);
 
@@ -627,7 +644,7 @@ class ClientWiFiWrapper{
 
       print_buff(buff, n);
 
-      int res = sky_decode_resp_bin(buff, SKY_PROT_BUFF_LEN, n, &resp);
+      int res = sky_decode_resp_bin(buff, SKY_PROT_BUFF_LEN, &resp);
 
       if (res == -1){
           Serial.println("failed to decode response");
@@ -638,8 +655,10 @@ class ClientWiFiWrapper{
       sent = false;
       return true;
     }
+    Serial.println("rx() failed due to no data available");
     return false;
   }
+
   // ONLY FOR DEBUGGING IN SERIAL
   void print_location_resp(struct location_rsp_t *cr)
   {
@@ -766,7 +785,8 @@ class ClientWiFiWrapper{
       Serial.println();
   }
 
-  // handles elg request and response and displays on the oled
+  // clnt mode: handle() sends and receives location request and response within the timeframe of [10s,20s],
+  // and displays on the oled
   void handle(){
     unsigned long now = millis();
     if(WiFi.status() == WL_CONNECTED){
@@ -780,12 +800,16 @@ class ClientWiFiWrapper{
       }
       else{
         if(now - rxTimer > WIFI_RX_WAIT_TIME){
-          if(now - rxTimer < SOCKET_TIMEOUT){
+          if(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME){
             if(rx()){
               rxTimer = now;
               // SERIAL DEBUGGING
               print_location_oled();
               check_time = 0;
+            }
+            else {
+              Serial.println("clnt mode: rx() failed at time "+String(now - rxTimer));
+              sent = false;
             }
           }
           else{
@@ -803,7 +827,9 @@ class ClientWiFiWrapper{
     }
   }
 
-  // function that will return a single location response in a form of a json
+  // location_json() serves ap mode (web server) to respond to the web client "Locate Me" request
+  // within the timeframe of [10s,20s], and returns a single location response in a form of a json
+  // from web server to web client.
   void location_json(){
     String error = "";
     while(true){
@@ -818,7 +844,7 @@ class ClientWiFiWrapper{
         }
         else{
           if(now - rxTimer > WIFI_RX_WAIT_TIME){
-            while(!(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME)){
+            if(now - rxTimer < SOCKET_TIMEOUT + WIFI_RX_WAIT_TIME){
               if(rx()){
                 if(get_error(error)){
                   Serial.println(error);
@@ -856,6 +882,7 @@ class ClientWiFiWrapper{
                 return;
               }
             }
+            sent = false;
           }
         }
       }
@@ -886,7 +913,7 @@ void load_config(){
   scan_frq = config_obj["scan_freq"];
   HPE = config_obj["HPE"];
   reverse_geo = config_obj["reverse_geo"];
-  key.userid = config_obj["partner_id"];
+  key.partner_id = config_obj["partner_id"];
   memset(key.aes_key, 0, sizeof(key.aes_key));
   hex2bin((const char *)config_obj["aes_key"], strlen(config_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
 }
@@ -1006,7 +1033,9 @@ void print_location_oled(){
           oled.println("HPE: " + String(resp.location.hpe, 5));
         }
       }
+      yield();
       oled.display();
+      yield();
       page1_done = true;
     }
     if(now - start_time > page1_display_timer && !page2_done){
@@ -1048,7 +1077,9 @@ void print_location_oled(){
         oled.setCursor(0,8);
         oled.println("Unable to determine location");
       }
+      yield();
       oled.display();
+      yield();
       page2_done = true;
     }
     if(now - start_time > (unsigned long)scan_frq){
@@ -1286,7 +1317,7 @@ void handleChangePreferences(){
     b.close();
 
     // update global "sky_key_t key"
-    key.userid = pref_obj["partner_id"];
+    key.partner_id = pref_obj["partner_id"];
     memset(key.aes_key, 0, sizeof(key.aes_key));
     hex2bin((const char *)pref_obj["aes_key"], strlen(pref_obj["aes_key"]), key.aes_key, sizeof(key.aes_key));
 
@@ -1413,6 +1444,7 @@ void setup() {
 //  WiFi.setAutoReconnect(true);
 //  WiFi.setAutoConnect(true);
 
+  esp_start_time = millis();
   // Begin Serial output
   if(DEBUG){
     Serial.begin(115200);

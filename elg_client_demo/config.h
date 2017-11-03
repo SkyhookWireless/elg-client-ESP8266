@@ -15,9 +15,9 @@ const char *AP_SSID = "Skyhook ELG";
 // access point port number
 #define AP_PORT 80
 // wait for packet reception
-#define WIFI_RX_WAIT_TIME 2000 // ms
+#define WIFI_RX_WAIT_TIME 10000 // ms
 
-#define SOCKET_TIMEOUT 5000
+#define SOCKET_TIMEOUT 10000 // ms
 
 // user button
 #define AP              1

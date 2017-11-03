@@ -20,10 +20,12 @@ cp elg_client_demo/common/inc/sky_protocol.h elg_client_demo/sky_protocol.h
 sed -i -e "s|^#include <endian.h>.*||" elg_client_demo/sky_protocol.h
 sed -i -e "s|^#include <byteswap.h>.*||" elg_client_demo/sky_protocol.h
 
-# 2. Comment out "perror" and "fprintf".
+# 2. Comment out "perror", "fprintf", "printf" and "puts".
 cp elg_client_demo/common/src/protocol/sky_protocol.c elg_client_demo/sky_protocol.c
 sed -i -e "s|perror|//perror|g" elg_client_demo/sky_protocol.c
 sed -i -e "s|fprintf|//fprintf|g" elg_client_demo/sky_protocol.c
+sed -i -e "s| printf| //printf|g" elg_client_demo/sky_protocol.c
+sed -i -e "s|puts|//puts|g" elg_client_demo/sky_protocol.c
 
 # 3. Copy crypto files and comment out "perror".
 cp elg_client_demo/common/external/HMAC/hmac256.? elg_client_demo/
